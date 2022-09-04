@@ -8,25 +8,35 @@ import (
 )
 
 const (
-	ServerEnvServerAddress     = "RUN_ADDRESS"
-	ServerDefaultServerAddress = "localhost:8080"
+	ServerAddressEnv     = "RUN_ADDRESS"
+	ServerAddressDefault = "localhost:8080"
 
-	DataBaseEnvAddress     = "DATABASE_URI"
-	DataBaseDefaultAddress = ""
+	DataBaseAddressEnv     = "DATABASE_URI"
+	DataBaseAddressDefault = ""
 
 	AccrualSystemEnvAddress     = "ACCRUAL_SYSTEM_ADDRESS"
-	AccrualSystemDefaultAddress = ""
+	AccrualSystemAddressDefault = ""
+
+	LogLevelEnv     = "LOG_LEVEL"
+	LogLevelDefault = "Info"
 )
 
-type Config struct {
-	AppConfig struct {
+type (
+	Config struct {
+		App        appConfig
+		HTTPServer serverConfig
+	}
+
+	appConfig struct {
 		DataBaseURI          string
 		AccrualSystemAddress string
+		LogLevel             string
 	}
-	ServerConfig struct {
+
+	serverConfig struct {
 		ServerAddress string
 	}
-}
+)
 
 var instance *Config
 var once sync.Once
@@ -35,16 +45,26 @@ func GetConfig() *Config {
 	once.Do(func() {
 		log.Println("Parse config with osArgs:", os.Args)
 
-		hostFlag := flag.String("a", ServerDefaultServerAddress, "адрес и порт сервера")
-		DBFlag := flag.String("d", DataBaseDefaultAddress, "адрес и порт сервера")
-		AccrualFlag := flag.String("r", AccrualSystemDefaultAddress, "адрес и порт сервера")
+		hostFlag := flag.String("a", ServerAddressDefault, "адрес и порт сервера")
+		DBFlag := flag.String("d", DataBaseAddressDefault, "адрес и порт сервера")
+		AccrualFlag := flag.String("r", AccrualSystemAddressDefault, "адрес и порт сервера")
+		LogFlag := flag.String("l", LogLevelDefault, "адрес и порт сервера")
 		flag.Parse()
 
-		instance = &Config{}
+		serverCfg := serverConfig{
+			ServerAddress: getEnvString(ServerAddressEnv, *hostFlag),
+		}
 
-		instance.ServerConfig.ServerAddress = GetEnvString(ServerEnvServerAddress, *hostFlag)
-		instance.AppConfig.DataBaseURI = GetEnvString(DataBaseEnvAddress, *DBFlag)
-		instance.AppConfig.AccrualSystemAddress = GetEnvString(AccrualSystemEnvAddress, *AccrualFlag)
+		appCfg := appConfig{
+			DataBaseURI:          getEnvString(DataBaseAddressEnv, *DBFlag),
+			AccrualSystemAddress: getEnvString(AccrualSystemEnvAddress, *AccrualFlag),
+			LogLevel:             getEnvString(LogLevelEnv, *LogFlag),
+		}
+
+		instance = &Config{
+			App:        appCfg,
+			HTTPServer: serverCfg,
+		}
 
 		log.Printf("Parsed config: %+v", instance)
 	})
@@ -52,7 +72,7 @@ func GetConfig() *Config {
 	return instance
 }
 
-func GetEnvString(envName, defaultValue string) string {
+func getEnvString(envName, defaultValue string) string {
 	value := os.Getenv(envName)
 	if value == "" {
 		log.Printf("empty env: %s, default: %s", envName, defaultValue)
