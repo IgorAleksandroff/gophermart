@@ -7,6 +7,9 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/IgorAleksandroff/gophermart.git/internal/hendler"
+	"github.com/IgorAleksandroff/gophermart.git/internal/repository"
+	"github.com/IgorAleksandroff/gophermart.git/internal/usecase"
 	"github.com/IgorAleksandroff/gophermart.git/pkg/logger"
 	"github.com/go-chi/chi"
 
@@ -15,25 +18,31 @@ import (
 )
 
 type app struct {
-	cfg     *config.Config
-	handler http.Handler
-	l       *logger.Logger
+	cfg    *config.Config
+	router http.Handler
+	l      *logger.Logger
 }
 
 func NewApp(cfg *config.Config) (*app, error) {
 	l := logger.New(cfg.App.LogLevel)
 	r := chi.NewRouter()
 
+	rep := repository.NewMemoRepository()
+	ordersUsecase := usecase.NewOrders(rep)
+	h := hendler.New(&ordersUsecase)
+
+	h.Register(r, http.MethodGet, "/api/user/orders", h.HandleGetOrders)
+
 	return &app{
-		cfg:     cfg,
-		handler: r,
-		l:       l,
+		cfg:    cfg,
+		router: r,
+		l:      l,
 	}, nil
 }
 
 func (a *app) Run() {
 	// start http server
-	httpServer := httpserver.New(a.handler, httpserver.Addr(a.cfg.HTTPServer.ServerAddress))
+	httpServer := httpserver.New(a.router, httpserver.Addr(a.cfg.HTTPServer.ServerAddress))
 
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
