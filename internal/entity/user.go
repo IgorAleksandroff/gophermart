@@ -1,7 +1,15 @@
 package entity
 
 type User struct {
-	Login    string `json:"login"`
-	password string `json:"password"`
-	UserID   *int64 `json:"user_id,omitempty"`
+	UserID    *int64
+	Login     string
+	Password  string
+	Current   int64
+	Withdrawn int64
+}
+
+type Balance struct {
+	userID    int64
+	Current   int64 `json:"current"`
+	Withdrawn int64 `json:"withdrawn"`
 }

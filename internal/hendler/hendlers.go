@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/IgorAleksandroff/gophermart.git/internal/entity"
 	"github.com/IgorAleksandroff/gophermart.git/internal/usecase"
@@ -40,8 +41,9 @@ func (h *handler) HandlePostOrders(w http.ResponseWriter, r *http.Request) {
 	// todo: поход за бонусами
 	// todo: проверка пользователя
 	err = h.ordersUC.SaveOrder(entity.Order{
-		ID:     int64(orderNumber),
-		UserID: 0,
+		OrderID:    int64(orderNumber),
+		UserID:     0,
+		UploadedAt: time.Now().Format(time.RFC3339),
 	})
 	if err != nil {
 		if errors.Is(err, usecase.ErrExistOrderByThisUser) {
@@ -61,12 +63,20 @@ func (h *handler) HandlePostOrders(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *handler) HandleGetOrders(w http.ResponseWriter, r *http.Request) {
-	orders := h.ordersUC.GetOrders()
+	orders, err := h.ordersUC.GetOrders()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	if len(orders) == 0 {
+		http.Error(w, "empty slice", http.StatusNoContent)
+		return
+	}
 
 	buf := bytes.NewBuffer([]byte{})
 	jsonEncoder := json.NewEncoder(buf)
-	err := jsonEncoder.Encode(orders)
-
+	err = jsonEncoder.Encode(orders)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return

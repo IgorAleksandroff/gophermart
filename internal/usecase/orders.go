@@ -1,7 +1,10 @@
 package usecase
 
 import (
+	"encoding/json"
 	"errors"
+	"fmt"
+	"strconv"
 
 	"github.com/IgorAleksandroff/gophermart.git/internal/entity"
 )
@@ -9,28 +12,47 @@ import (
 //go:generate mockery --name Orders
 //go:generate mockery --name Repository
 
+const accrualEndpoint = "/api/orders/"
+
 var ErrExistOrderByThisUser = errors.New("order number already uploaded by this user")
 var ErrExistOrderByAnotherUser = errors.New("order number already uploaded by another user")
 
 type ordersUsecase struct {
-	rep repository
+	rep           repository
+	accrualClient apiClient
 }
 
 type Orders interface {
 	SaveOrder(order entity.Order) error
-	GetOrders() map[int64]entity.Order
+	GetOrders() ([]entity.Orders, error)
 }
 
 type repository interface {
 	SaveOrder(order entity.Order) (*int64, error)
-	GetOrders() map[int64]entity.Order
+	GetOrders() ([]entity.Orders, error)
 }
 
-func NewOrders(r repository) ordersUsecase {
-	return ordersUsecase{rep: r}
+type apiClient interface {
+	DoGet(url string) ([]byte, error)
+}
+
+func NewOrders(r repository, c apiClient) ordersUsecase {
+	return ordersUsecase{rep: r, accrualClient: c}
 }
 
 func (o *ordersUsecase) SaveOrder(order entity.Order) error {
+	var accrual entity.Accrual
+	out, err := o.accrualClient.DoGet(accrualEndpoint + strconv.FormatInt(order.OrderID, 10))
+	if err != nil {
+		return fmt.Errorf("error from service accurual: %w", err)
+	}
+
+	err = json.Unmarshal(out, &accrual)
+	if err != nil {
+		return fmt.Errorf("error parse answer from service accurual: %w", err)
+	}
+
+	// todo сохранить баланс в пользователя
 	userID, err := o.rep.SaveOrder(order)
 	if err != nil {
 		return err
@@ -46,6 +68,6 @@ func (o *ordersUsecase) SaveOrder(order entity.Order) error {
 	return nil
 }
 
-func (o *ordersUsecase) GetOrders() map[int64]entity.Order {
+func (o *ordersUsecase) GetOrders() ([]entity.Orders, error) {
 	return o.rep.GetOrders()
 }
