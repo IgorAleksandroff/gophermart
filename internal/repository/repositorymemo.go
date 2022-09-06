@@ -5,16 +5,30 @@ import (
 )
 
 type memoRep struct {
-	orders map[string]entity.Order
+	orders  map[int64]entity.Order
+	users   map[string]entity.User
+	balance map[int64]entity.Balance
 }
 
 func NewMemoRepository() *memoRep {
-	o := make(map[string]entity.Order)
-	o["test"] = entity.Order{ID: 1}
+	o := make(map[int64]entity.Order)
+	u := make(map[string]entity.User)
+	b := make(map[int64]entity.Balance)
 
-	return &memoRep{orders: o}
+	return &memoRep{orders: o, users: u, balance: b}
 }
 
-func (m *memoRep) GetOrders() map[string]entity.Order {
+func (m *memoRep) SaveOrder(order entity.Order) (*int64, error) {
+	orderSaved, ok := m.orders[order.ID]
+	if ok {
+		return &orderSaved.UserID, nil
+	}
+
+	m.orders[order.ID] = order
+
+	return nil, nil
+}
+
+func (m *memoRep) GetOrders() map[int64]entity.Order {
 	return m.orders
 }

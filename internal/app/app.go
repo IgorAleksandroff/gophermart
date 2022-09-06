@@ -7,14 +7,14 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/IgorAleksandroff/gophermart.git/internal/hendler"
-	"github.com/IgorAleksandroff/gophermart.git/internal/repository"
-	"github.com/IgorAleksandroff/gophermart.git/internal/usecase"
-	"github.com/IgorAleksandroff/gophermart.git/pkg/logger"
 	"github.com/go-chi/chi"
 
 	"github.com/IgorAleksandroff/gophermart.git/internal/config"
+	"github.com/IgorAleksandroff/gophermart.git/internal/hendler"
+	"github.com/IgorAleksandroff/gophermart.git/internal/repository"
+	"github.com/IgorAleksandroff/gophermart.git/internal/usecase"
 	"github.com/IgorAleksandroff/gophermart.git/pkg/httpserver"
+	"github.com/IgorAleksandroff/gophermart.git/pkg/logger"
 )
 
 type app struct {
