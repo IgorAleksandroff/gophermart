@@ -2,7 +2,7 @@ package entity
 
 type Order struct {
 	OrderID    string
-	UserID     int64
+	UserLogin  string
 	Status     string
 	Accrual    *float64
 	UploadedAt string
@@ -10,7 +10,7 @@ type Order struct {
 
 type OrderWithdraw struct {
 	OrderID     string `json:"order"`
-	UserID      int64
+	UserLogin   string
 	Value       float64 `json:"sum"`
 	ProcessedAt string  `json:"processed_at,omitempty"`
 }

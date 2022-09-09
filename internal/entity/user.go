@@ -4,12 +4,12 @@ type User struct {
 	UserID    *int64
 	Login     string
 	Password  string
-	Current   int64
-	Withdrawn int64
+	Current   float64
+	Withdrawn float64
 }
 
 type Balance struct {
-	userID    int64
-	Current   int64 `json:"current"`
-	Withdrawn int64 `json:"withdrawn"`
+	Login     *string
+	Current   float64 `json:"current"`
+	Withdrawn float64 `json:"withdrawn"`
 }

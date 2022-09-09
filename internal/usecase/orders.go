@@ -15,6 +15,7 @@ const accrualEndpoint = "/api/orders/"
 
 var ErrExistOrderByThisUser = errors.New("order number already uploaded by this user")
 var ErrExistOrderByAnotherUser = errors.New("order number already uploaded by another user")
+var ErrLowBalance = errors.New("low balance of current user")
 
 type ordersUsecase struct {
 	rep           repository
@@ -22,13 +23,21 @@ type ordersUsecase struct {
 }
 
 type Orders interface {
+	GetUser(login string) (entity.User, error)
 	SaveOrder(order entity.Order) error
 	GetOrders() ([]entity.Orders, error)
+	SaveWithdrawn(order entity.OrderWithdraw) error
+	GetWithdrawals() ([]entity.OrderWithdraw, error)
 }
 
 type repository interface {
-	SaveOrder(order entity.Order) (*int64, error)
+	GetUser(login string) (entity.User, error)
+	SaveOrder(order entity.Order) (*string, error)
 	GetOrders() ([]entity.Orders, error)
+	UpdateUser(user entity.User) error
+	SupplementBalance(order entity.Order) error
+	SaveWithdrawn(order entity.OrderWithdraw) error
+	GetWithdrawals() ([]entity.OrderWithdraw, error)
 }
 
 type apiClient interface {
@@ -37,6 +46,10 @@ type apiClient interface {
 
 func NewOrders(r repository, c apiClient) ordersUsecase {
 	return ordersUsecase{rep: r, accrualClient: c}
+}
+
+func (o *ordersUsecase) GetUser(login string) (entity.User, error) {
+	return o.rep.GetUser(login)
 }
 
 func (o *ordersUsecase) SaveOrder(order entity.Order) error {
@@ -53,17 +66,22 @@ func (o *ordersUsecase) SaveOrder(order entity.Order) error {
 	order.Status = accrual.Status
 	order.Accrual = accrual.Accrual
 
-	// todo сохранить баланс в пользователя
-	userID, err := o.rep.SaveOrder(order)
+	// todo сохранить баланс в пользователя через транзакцию
+	userLogin, err := o.rep.SaveOrder(order)
 	if err != nil {
 		return err
 	}
-	if userID != nil {
-		if *userID == order.UserID {
+	if userLogin != nil {
+		if *userLogin == order.UserLogin {
 			return ErrExistOrderByThisUser
 		}
 
 		return ErrExistOrderByAnotherUser
+	}
+
+	err = o.rep.SupplementBalance(order)
+	if err != nil {
+		return err
 	}
 
 	return nil
@@ -71,4 +89,33 @@ func (o *ordersUsecase) SaveOrder(order entity.Order) error {
 
 func (o *ordersUsecase) GetOrders() ([]entity.Orders, error) {
 	return o.rep.GetOrders()
+}
+
+func (o *ordersUsecase) SaveWithdrawn(withdrawn entity.OrderWithdraw) error {
+	user, err := o.rep.GetUser(withdrawn.UserLogin)
+	if err != nil {
+		return err
+	}
+
+	if withdrawn.Value > user.Current {
+		return ErrLowBalance
+	}
+	user.Current = -withdrawn.Value
+	user.Withdrawn = +withdrawn.Value
+
+	// todo сохранить баланс в пользователя через транзакцию
+	err = o.rep.UpdateUser(user)
+	if err != nil {
+		return err
+	}
+
+	if err = o.rep.SaveWithdrawn(withdrawn); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (o *ordersUsecase) GetWithdrawals() ([]entity.OrderWithdraw, error) {
+	return o.rep.GetWithdrawals()
 }

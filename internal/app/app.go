@@ -36,6 +36,10 @@ func NewApp(cfg *config.Config) (*app, error) {
 	h.Register(r, http.MethodPost, "/api/user/orders", h.HandlePostOrders)
 	h.Register(r, http.MethodGet, "/api/user/orders", h.HandleGetOrders)
 
+	h.Register(r, http.MethodGet, "/api/user/balance", h.HandleGetBalance)
+	h.Register(r, http.MethodPost, "/api/user/balance/withdraw", h.HandlePostBalanceWithdraw)
+	h.Register(r, http.MethodGet, "/api/user/withdrawals", h.HandleGetWithdrawals)
+
 	return &app{
 		cfg:    cfg,
 		router: r,
