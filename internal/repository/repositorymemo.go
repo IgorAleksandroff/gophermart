@@ -6,6 +6,8 @@ import (
 	"github.com/IgorAleksandroff/gophermart.git/internal/entity"
 )
 
+var ErrUserRegister = errors.New("user already exist")
+
 // balance    DECIMAL(16, 4) NOT NULL DEFAULT 0
 // На практике - флоат нужен только для баланса
 type memoRep struct {
@@ -21,6 +23,18 @@ func NewMemoRepository() *memoRep {
 
 	return &memoRep{orders: o, users: u, withdraw: w}
 }
+
+func (m *memoRep) SaveUser(user entity.User) error {
+	_, ok := m.users[user.Login]
+	if ok {
+		return ErrUserRegister
+	}
+
+	m.users[user.Login] = user
+
+	return nil
+}
+
 func (m *memoRep) GetUser(login string) (entity.User, error) {
 	userSaved, ok := m.users[login]
 	if ok {
@@ -39,6 +53,20 @@ func (m *memoRep) SaveOrder(order entity.Order) (*string, error) {
 	m.orders[order.OrderID] = order
 
 	return nil, nil
+}
+
+func (m *memoRep) GetOrders() ([]entity.Orders, error) {
+	result := make([]entity.Orders, 0, len(m.orders))
+	for _, order := range m.orders {
+		result = append(result, entity.Orders{
+			OrderID:    order.OrderID,
+			Status:     order.Status,
+			Accrual:    order.Accrual,
+			UploadedAt: order.UploadedAt,
+		})
+	}
+
+	return result, nil
 }
 
 func (m *memoRep) UpdateUser(user entity.User) error {
@@ -68,18 +96,15 @@ func (m *memoRep) SupplementBalance(order entity.Order) error {
 	return nil
 }
 
-func (m *memoRep) GetOrders() ([]entity.Orders, error) {
-	result := make([]entity.Orders, 0, len(m.orders))
-	for _, order := range m.orders {
-		result = append(result, entity.Orders{
-			OrderID:    order.OrderID,
-			Status:     order.Status,
-			Accrual:    order.Accrual,
-			UploadedAt: order.UploadedAt,
-		})
+func (m *memoRep) SaveWithdrawn(withdrawn entity.OrderWithdraw) error {
+	_, ok := m.withdraw[withdrawn.OrderID]
+	if ok {
+		return errors.New("withdrawn already exist")
 	}
 
-	return result, nil
+	m.withdraw[withdrawn.OrderID] = withdrawn
+
+	return nil
 }
 
 func (m *memoRep) GetWithdrawals() ([]entity.OrderWithdraw, error) {

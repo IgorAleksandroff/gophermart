@@ -33,6 +33,9 @@ func NewApp(cfg *config.Config) (*app, error) {
 	ordersUsecase := usecase.NewOrders(rep, apiClient)
 	h := hendler.New(&ordersUsecase)
 
+	h.Register(r, http.MethodPost, "/api/user/register", h.HandleUserRegister)
+	h.Register(r, http.MethodPost, "/api/user/login", h.HandleUserLogin)
+
 	h.Register(r, http.MethodPost, "/api/user/orders", h.HandlePostOrders)
 	h.Register(r, http.MethodGet, "/api/user/orders", h.HandleGetOrders)
 

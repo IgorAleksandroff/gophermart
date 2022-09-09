@@ -2,8 +2,8 @@ package entity
 
 type User struct {
 	UserID    *int64
-	Login     string
-	Password  string
+	Login     string `json:"login"`
+	Password  string `json:"password"`
 	Current   float64
 	Withdrawn float64
 }

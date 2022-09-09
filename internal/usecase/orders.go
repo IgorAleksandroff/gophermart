@@ -23,6 +23,7 @@ type ordersUsecase struct {
 }
 
 type Orders interface {
+	SaveUser(user entity.User) error
 	GetUser(login string) (entity.User, error)
 	SaveOrder(order entity.Order) error
 	GetOrders() ([]entity.Orders, error)
@@ -31,6 +32,7 @@ type Orders interface {
 }
 
 type repository interface {
+	SaveUser(user entity.User) error
 	GetUser(login string) (entity.User, error)
 	SaveOrder(order entity.Order) (*string, error)
 	GetOrders() ([]entity.Orders, error)
@@ -46,6 +48,10 @@ type apiClient interface {
 
 func NewOrders(r repository, c apiClient) ordersUsecase {
 	return ordersUsecase{rep: r, accrualClient: c}
+}
+
+func (o *ordersUsecase) SaveUser(user entity.User) error {
+	return o.rep.SaveUser(user)
 }
 
 func (o *ordersUsecase) GetUser(login string) (entity.User, error) {

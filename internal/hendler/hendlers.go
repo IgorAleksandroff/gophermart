@@ -11,8 +11,48 @@ import (
 	"time"
 
 	"github.com/IgorAleksandroff/gophermart.git/internal/entity"
+	"github.com/IgorAleksandroff/gophermart.git/internal/repository"
 	"github.com/IgorAleksandroff/gophermart.git/internal/usecase"
 )
+
+func (h *handler) HandleUserRegister(w http.ResponseWriter, r *http.Request) {
+	// todo: проверка пользователя
+	contentTypeHeaderValue := r.Header.Get("Content-Type")
+	if !strings.Contains(contentTypeHeaderValue, "application/json") {
+		http.Error(w, "unknown content-type", http.StatusBadRequest)
+		return
+	}
+
+	if r.Body == nil {
+		http.Error(w, "empty body", http.StatusBadRequest)
+		return
+	}
+
+	newUser := entity.User{}
+	reader := json.NewDecoder(r.Body)
+	if err := reader.Decode(&newUser); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	err := h.ordersUC.SaveUser(newUser)
+	if err != nil {
+		if errors.Is(err, repository.ErrUserRegister) {
+			http.Error(w, err.Error(), http.StatusConflict)
+			return
+		}
+
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+}
+
+func (h *handler) HandleUserLogin(w http.ResponseWriter, r *http.Request) {
+
+	w.WriteHeader(http.StatusAccepted)
+}
 
 func (h *handler) HandlePostOrders(w http.ResponseWriter, r *http.Request) {
 	contentTypeHeaderValue := r.Header.Get("Content-Type")
@@ -151,7 +191,7 @@ func (h *handler) HandlePostBalanceWithdraw(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	w.WriteHeader(http.StatusAccepted)
+	w.WriteHeader(http.StatusOK)
 }
 
 func (h *handler) HandleGetWithdrawals(w http.ResponseWriter, r *http.Request) {
