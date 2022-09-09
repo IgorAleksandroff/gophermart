@@ -15,7 +15,7 @@ const (
 	DataBaseAddressDefault = ""
 
 	AccrualSystemEnvAddress     = "ACCRUAL_SYSTEM_ADDRESS"
-	AccrualSystemAddressDefault = ""
+	AccrualSystemAddressDefault = "localhost:80"
 
 	LogLevelEnv     = "LOG_LEVEL"
 	LogLevelDefault = "Info"
@@ -57,7 +57,7 @@ func GetConfig() *Config {
 
 		appCfg := appConfig{
 			DataBaseURI:          getEnvString(DataBaseAddressEnv, *DBFlag),
-			AccrualSystemAddress: getEnvString(AccrualSystemEnvAddress, *AccrualFlag),
+			AccrualSystemAddress: "http://" + getEnvString(AccrualSystemEnvAddress, *AccrualFlag),
 			LogLevel:             getEnvString(LogLevelEnv, *LogFlag),
 		}
 

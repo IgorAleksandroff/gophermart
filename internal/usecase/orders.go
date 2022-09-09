@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"strconv"
 
 	"github.com/IgorAleksandroff/gophermart.git/internal/entity"
 )
@@ -42,7 +41,7 @@ func NewOrders(r repository, c apiClient) ordersUsecase {
 
 func (o *ordersUsecase) SaveOrder(order entity.Order) error {
 	var accrual entity.Accrual
-	out, err := o.accrualClient.DoGet(accrualEndpoint + strconv.FormatInt(order.OrderID, 10))
+	out, err := o.accrualClient.DoGet(accrualEndpoint + order.OrderID)
 	if err != nil {
 		return fmt.Errorf("error from service accurual: %w", err)
 	}
@@ -51,6 +50,8 @@ func (o *ordersUsecase) SaveOrder(order entity.Order) error {
 	if err != nil {
 		return fmt.Errorf("error parse answer from service accurual: %w", err)
 	}
+	order.Status = accrual.Status
+	order.Accrual = accrual.Accrual
 
 	// todo сохранить баланс в пользователя
 	userID, err := o.rep.SaveOrder(order)

@@ -7,6 +7,7 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/IgorAleksandroff/gophermart.git/internal/webapi"
 	"github.com/go-chi/chi"
 
 	"github.com/IgorAleksandroff/gophermart.git/internal/config"
@@ -28,7 +29,8 @@ func NewApp(cfg *config.Config) (*app, error) {
 	r := chi.NewRouter()
 
 	rep := repository.NewMemoRepository()
-	ordersUsecase := usecase.NewOrders(rep)
+	apiClient := webapi.NewClient(cfg.App.AccrualSystemAddress)
+	ordersUsecase := usecase.NewOrders(rep, apiClient)
 	h := hendler.New(&ordersUsecase)
 
 	h.Register(r, http.MethodPost, "/api/user/orders", h.HandlePostOrders)

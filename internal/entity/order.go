@@ -1,31 +1,31 @@
 package entity
 
 type Order struct {
-	OrderID    int64
+	OrderID    string
 	UserID     int64
 	Status     string
-	Accrual    *int64
+	Accrual    *float64
 	UploadedAt string
 }
 
 type OrderWithdraw struct {
-	OrderID     int64 `json:"order"`
+	OrderID     string `json:"order"`
 	UserID      int64
-	Value       int64  `json:"sum"`
-	ProcessedAt string `json:"processed_at,omitempty"`
+	Value       float64 `json:"sum"`
+	ProcessedAt string  `json:"processed_at,omitempty"`
 }
 
 type Orders struct {
-	OrderID    int64  `json:"number"`
-	Status     string `json:"status,omitempty"`
-	Accrual    *int64 `json:"accrual,omitempty"`
-	UploadedAt string `json:"uploaded_at,omitempty"`
+	OrderID    string   `json:"number"`
+	Status     string   `json:"status"`
+	Accrual    *float64 `json:"accrual,omitempty"`
+	UploadedAt string   `json:"uploaded_at"`
 }
 
 type Accrual struct {
-	OrderID int64  `json:"order"`
-	Status  int64  `json:"status,omitempty"`
-	Accrual *int64 `json:"accrual,omitempty"`
+	OrderID string   `json:"order"`
+	Status  string   `json:"status,omitempty"`
+	Accrual *float64 `json:"accrual,omitempty"`
 }
 
 // Valid check number is valid or not based on Luhn algorithm

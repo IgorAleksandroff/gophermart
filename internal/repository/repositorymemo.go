@@ -7,15 +7,15 @@ import (
 // balance    DECIMAL(16, 4) NOT NULL DEFAULT 0
 // На практике - флоат нужен только для баланса
 type memoRep struct {
-	orders   map[int64]entity.Order
+	orders   map[string]entity.Order
 	users    map[string]entity.User
-	withdraw map[int64]entity.OrderWithdraw
+	withdraw map[string]entity.OrderWithdraw
 }
 
 func NewMemoRepository() *memoRep {
-	o := make(map[int64]entity.Order)
+	o := make(map[string]entity.Order)
 	u := make(map[string]entity.User)
-	w := make(map[int64]entity.OrderWithdraw)
+	w := make(map[string]entity.OrderWithdraw)
 
 	return &memoRep{orders: o, users: u, withdraw: w}
 }

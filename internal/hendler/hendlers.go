@@ -16,7 +16,7 @@ import (
 
 func (h *handler) HandlePostOrders(w http.ResponseWriter, r *http.Request) {
 	contentTypeHeaderValue := r.Header.Get("Content-Type")
-	if !strings.Contains(contentTypeHeaderValue, "application/json") {
+	if !strings.Contains(contentTypeHeaderValue, "text/plain") {
 		http.Error(w, "unknown content-type", http.StatusBadRequest)
 		return
 	}
@@ -32,16 +32,16 @@ func (h *handler) HandlePostOrders(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	orderNumber, err := strconv.Atoi(string(b))
+	order := string(b)
+	orderNumber, err := strconv.Atoi(order)
 	if err != nil || !entity.Valid(orderNumber) {
 		http.Error(w, "invalid order number "+err.Error(), http.StatusUnprocessableEntity)
 		return
 	}
 
-	// todo: поход за бонусами
 	// todo: проверка пользователя
 	err = h.ordersUC.SaveOrder(entity.Order{
-		OrderID:    int64(orderNumber),
+		OrderID:    order,
 		UserID:     0,
 		UploadedAt: time.Now().Format(time.RFC3339),
 	})
