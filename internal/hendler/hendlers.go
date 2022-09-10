@@ -49,11 +49,13 @@ func (h *handler) UserIdentity(next http.Handler) http.Handler {
 func (h *handler) HandleUserRegister(w http.ResponseWriter, r *http.Request) {
 	contentTypeHeaderValue := r.Header.Get("Content-Type")
 	if !strings.Contains(contentTypeHeaderValue, "application/json") {
+		h.l.Warn("unknown content-type")
 		http.Error(w, "unknown content-type", http.StatusBadRequest)
 		return
 	}
 
 	if r.Body == nil {
+		h.l.Warn("empty body")
 		http.Error(w, "empty body", http.StatusBadRequest)
 		return
 	}
@@ -61,11 +63,13 @@ func (h *handler) HandleUserRegister(w http.ResponseWriter, r *http.Request) {
 	newUser := entity.User{}
 	reader := json.NewDecoder(r.Body)
 	if err := reader.Decode(&newUser); err != nil {
+		h.l.Warn(err.Error())
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
 	if err := h.auth.CreateUser(newUser); err != nil {
+		h.l.Warn(err.Error())
 		if errors.Is(err, repository.ErrUserRegister) {
 			http.Error(w, err.Error(), http.StatusConflict)
 			return
@@ -77,6 +81,7 @@ func (h *handler) HandleUserRegister(w http.ResponseWriter, r *http.Request) {
 
 	token, err := h.auth.GenerateToken(newUser.Login, newUser.Password)
 	if err != nil {
+		h.l.Warn(err.Error())
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -87,6 +92,7 @@ func (h *handler) HandleUserRegister(w http.ResponseWriter, r *http.Request) {
 		"token": token,
 	})
 	if err != nil {
+		h.l.Warn(err.Error())
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}

@@ -33,7 +33,7 @@ func NewApp(cfg *config.Config) (*app, error) {
 	ordersUsecase := usecase.NewOrders(repo, apiClient)
 	auth := usecase.NewAuthorization(repo)
 
-	h := hendler.New(ordersUsecase, auth)
+	h := hendler.New(ordersUsecase, auth, l)
 
 	h.Register(r, http.MethodPost, "/api/user/register", h.HandleUserRegister)
 	h.Register(r, http.MethodPost, "/api/user/login", h.HandleUserLogin)

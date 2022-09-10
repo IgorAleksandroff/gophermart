@@ -4,11 +4,13 @@ import (
 	"net/http"
 
 	"github.com/IgorAleksandroff/gophermart/internal/usecase"
+	"github.com/IgorAleksandroff/gophermart/pkg/logger"
 )
 
 type handler struct {
 	ordersUC usecase.Orders
 	auth     usecase.Authorization
+	l        *logger.Logger
 }
 
 type handlerFunc interface {
@@ -18,10 +20,12 @@ type handlerFunc interface {
 func New(
 	ordersUC usecase.Orders,
 	auth usecase.Authorization,
+	l *logger.Logger,
 ) *handler {
 	return &handler{
 		ordersUC: ordersUC,
 		auth:     auth,
+		l:        l,
 	}
 }
 
