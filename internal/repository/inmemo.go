@@ -38,7 +38,7 @@ func (m *memoRep) SaveUser(user entity.User) error {
 
 func (m *memoRep) GetUser(login string) (entity.User, error) {
 	userSaved, ok := m.users[login]
-	if ok {
+	if !ok {
 		return entity.User{}, ErrUserLogin
 	}
 
