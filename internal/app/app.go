@@ -7,15 +7,15 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/IgorAleksandroff/gophermart.git/internal/webapi"
+	"github.com/IgorAleksandroff/gophermart/internal/webapi"
 	"github.com/go-chi/chi"
 
-	"github.com/IgorAleksandroff/gophermart.git/internal/config"
-	"github.com/IgorAleksandroff/gophermart.git/internal/hendler"
-	"github.com/IgorAleksandroff/gophermart.git/internal/repository"
-	"github.com/IgorAleksandroff/gophermart.git/internal/usecase"
-	"github.com/IgorAleksandroff/gophermart.git/pkg/httpserver"
-	"github.com/IgorAleksandroff/gophermart.git/pkg/logger"
+	"github.com/IgorAleksandroff/gophermart/internal/config"
+	"github.com/IgorAleksandroff/gophermart/internal/hendler"
+	"github.com/IgorAleksandroff/gophermart/internal/repository"
+	"github.com/IgorAleksandroff/gophermart/internal/usecase"
+	"github.com/IgorAleksandroff/gophermart/pkg/httpserver"
+	"github.com/IgorAleksandroff/gophermart/pkg/logger"
 )
 
 type app struct {
@@ -28,20 +28,26 @@ func NewApp(cfg *config.Config) (*app, error) {
 	l := logger.New(cfg.App.LogLevel)
 	r := chi.NewRouter()
 
-	rep := repository.NewMemoRepository()
+	repo := repository.NewMemoRepository()
 	apiClient := webapi.NewClient(cfg.App.AccrualSystemAddress)
-	ordersUsecase := usecase.NewOrders(rep, apiClient)
-	h := hendler.New(&ordersUsecase)
+	ordersUsecase := usecase.NewOrders(repo, apiClient)
+	auth := usecase.NewAuthorization(repo)
+
+	h := hendler.New(ordersUsecase, auth)
 
 	h.Register(r, http.MethodPost, "/api/user/register", h.HandleUserRegister)
 	h.Register(r, http.MethodPost, "/api/user/login", h.HandleUserLogin)
 
-	h.Register(r, http.MethodPost, "/api/user/orders", h.HandlePostOrders)
-	h.Register(r, http.MethodGet, "/api/user/orders", h.HandleGetOrders)
+	r.Group(func(r chi.Router) {
+		r.Use(h.UserIdentity)
 
-	h.Register(r, http.MethodGet, "/api/user/balance", h.HandleGetBalance)
-	h.Register(r, http.MethodPost, "/api/user/balance/withdraw", h.HandlePostBalanceWithdraw)
-	h.Register(r, http.MethodGet, "/api/user/withdrawals", h.HandleGetWithdrawals)
+		h.Register(r, http.MethodPost, "/api/user/orders", h.HandlePostOrders)
+		h.Register(r, http.MethodGet, "/api/user/orders", h.HandleGetOrders)
+
+		h.Register(r, http.MethodGet, "/api/user/balance", h.HandleGetBalance)
+		h.Register(r, http.MethodPost, "/api/user/balance/withdraw", h.HandlePostBalanceWithdraw)
+		h.Register(r, http.MethodGet, "/api/user/withdrawals", h.HandleGetWithdrawals)
+	})
 
 	return &app{
 		cfg:    cfg,

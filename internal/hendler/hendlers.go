@@ -10,13 +10,43 @@ import (
 	"strings"
 	"time"
 
-	"github.com/IgorAleksandroff/gophermart.git/internal/entity"
-	"github.com/IgorAleksandroff/gophermart.git/internal/repository"
-	"github.com/IgorAleksandroff/gophermart.git/internal/usecase"
+	"github.com/IgorAleksandroff/gophermart/internal/entity"
+	"github.com/IgorAleksandroff/gophermart/internal/repository"
+	"github.com/IgorAleksandroff/gophermart/internal/usecase"
 )
 
+const (
+	authorizationHeader = "Authorization"
+	userCtx             = "userId"
+)
+
+func (h *handler) UserIdentity(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		header := r.Header.Get(authorizationHeader)
+
+		if header == "" {
+			http.Error(w, "empty auth header", http.StatusUnauthorized)
+			return
+		}
+
+		headerParts := strings.Split(header, " ")
+		if len(headerParts) != 2 || headerParts[0] != "Bearer" {
+			http.Error(w, "invalid auth header", http.StatusUnauthorized)
+			return
+		}
+
+		login, err := h.auth.ParseToken(headerParts[1])
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusUnauthorized)
+			return
+		}
+
+		r.Header.Set(userCtx, login)
+		next.ServeHTTP(w, r)
+	})
+}
+
 func (h *handler) HandleUserRegister(w http.ResponseWriter, r *http.Request) {
-	// todo: проверка пользователя
 	contentTypeHeaderValue := r.Header.Get("Content-Type")
 	if !strings.Contains(contentTypeHeaderValue, "application/json") {
 		http.Error(w, "unknown content-type", http.StatusBadRequest)
@@ -35,8 +65,7 @@ func (h *handler) HandleUserRegister(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err := h.ordersUC.SaveUser(newUser)
-	if err != nil {
+	if err := h.auth.CreateUser(newUser); err != nil {
 		if errors.Is(err, repository.ErrUserRegister) {
 			http.Error(w, err.Error(), http.StatusConflict)
 			return
@@ -46,12 +75,71 @@ func (h *handler) HandleUserRegister(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	token, err := h.auth.GenerateToken(newUser.Login, newUser.Password)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	buf := bytes.NewBuffer([]byte{})
+	jsonEncoder := json.NewEncoder(buf)
+	err = jsonEncoder.Encode(map[string]interface{}{
+		"token": token,
+	})
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
+	w.Write(buf.Bytes())
 }
 
 func (h *handler) HandleUserLogin(w http.ResponseWriter, r *http.Request) {
+	contentTypeHeaderValue := r.Header.Get("Content-Type")
+	if !strings.Contains(contentTypeHeaderValue, "application/json") {
+		http.Error(w, "unknown content-type", http.StatusBadRequest)
+		return
+	}
 
-	w.WriteHeader(http.StatusAccepted)
+	if r.Body == nil {
+		http.Error(w, "empty body", http.StatusBadRequest)
+		return
+	}
+
+	user := entity.User{}
+	reader := json.NewDecoder(r.Body)
+	if err := reader.Decode(&user); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	token, err := h.auth.GenerateToken(user.Login, user.Password)
+	if err != nil {
+		errLogin := errors.Is(err, usecase.ErrUserLogin) || errors.Is(err, repository.ErrUserLogin)
+		if errLogin {
+			http.Error(w, err.Error(), http.StatusUnauthorized)
+			return
+		}
+
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	buf := bytes.NewBuffer([]byte{})
+	jsonEncoder := json.NewEncoder(buf)
+	err = jsonEncoder.Encode(map[string]interface{}{
+		"token": token,
+	})
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	w.Write(buf.Bytes())
 }
 
 func (h *handler) HandlePostOrders(w http.ResponseWriter, r *http.Request) {
@@ -79,10 +167,9 @@ func (h *handler) HandlePostOrders(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// todo: проверка пользователя
 	err = h.ordersUC.SaveOrder(entity.Order{
 		OrderID:    order,
-		UserLogin:  "testuser",
+		UserLogin:  r.Header.Get(authorizationHeader),
 		UploadedAt: time.Now().Format(time.RFC3339),
 	})
 	if err != nil {
@@ -103,7 +190,7 @@ func (h *handler) HandlePostOrders(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *handler) HandleGetOrders(w http.ResponseWriter, r *http.Request) {
-	orders, err := h.ordersUC.GetOrders()
+	orders, err := h.ordersUC.GetOrders(r.Header.Get(authorizationHeader))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -128,8 +215,7 @@ func (h *handler) HandleGetOrders(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *handler) HandleGetBalance(w http.ResponseWriter, r *http.Request) {
-	// todo: добавить пользователя
-	user, err := h.ordersUC.GetUser("testuser")
+	user, err := h.ordersUC.GetUser(r.Header.Get(authorizationHeader))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -154,7 +240,6 @@ func (h *handler) HandleGetBalance(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *handler) HandlePostBalanceWithdraw(w http.ResponseWriter, r *http.Request) {
-	// todo: проверка пользователя
 	contentTypeHeaderValue := r.Header.Get("Content-Type")
 	if !strings.Contains(contentTypeHeaderValue, "application/json") {
 		http.Error(w, "unknown content-type", http.StatusBadRequest)
@@ -179,7 +264,7 @@ func (h *handler) HandlePostBalanceWithdraw(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	withdrawn.UserLogin = "testuser"
+	withdrawn.UserLogin = r.Header.Get(authorizationHeader)
 	err = h.ordersUC.SaveWithdrawn(withdrawn)
 	if err != nil {
 		if errors.Is(err, usecase.ErrLowBalance) {
@@ -195,7 +280,7 @@ func (h *handler) HandlePostBalanceWithdraw(w http.ResponseWriter, r *http.Reque
 }
 
 func (h *handler) HandleGetWithdrawals(w http.ResponseWriter, r *http.Request) {
-	orders, err := h.ordersUC.GetOrders()
+	orders, err := h.ordersUC.GetWithdrawals(r.Header.Get(authorizationHeader))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

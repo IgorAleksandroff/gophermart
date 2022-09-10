@@ -3,11 +3,12 @@ package hendler
 import (
 	"net/http"
 
-	"github.com/IgorAleksandroff/gophermart.git/internal/usecase"
+	"github.com/IgorAleksandroff/gophermart/internal/usecase"
 )
 
 type handler struct {
 	ordersUC usecase.Orders
+	auth     usecase.Authorization
 }
 
 type handlerFunc interface {
@@ -16,9 +17,11 @@ type handlerFunc interface {
 
 func New(
 	ordersUC usecase.Orders,
+	auth usecase.Authorization,
 ) *handler {
 	return &handler{
 		ordersUC: ordersUC,
+		auth:     auth,
 	}
 }
 

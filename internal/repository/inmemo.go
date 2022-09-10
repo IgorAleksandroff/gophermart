@@ -3,10 +3,11 @@ package repository
 import (
 	"errors"
 
-	"github.com/IgorAleksandroff/gophermart.git/internal/entity"
+	"github.com/IgorAleksandroff/gophermart/internal/entity"
 )
 
 var ErrUserRegister = errors.New("user already exist")
+var ErrUserLogin = errors.New("unknown user")
 
 // balance    DECIMAL(16, 4) NOT NULL DEFAULT 0
 // На практике - флоат нужен только для баланса
@@ -38,7 +39,7 @@ func (m *memoRep) SaveUser(user entity.User) error {
 func (m *memoRep) GetUser(login string) (entity.User, error) {
 	userSaved, ok := m.users[login]
 	if ok {
-		return entity.User{}, errors.New("unknown user")
+		return entity.User{}, ErrUserLogin
 	}
 
 	return userSaved, nil
@@ -55,15 +56,17 @@ func (m *memoRep) SaveOrder(order entity.Order) (*string, error) {
 	return nil, nil
 }
 
-func (m *memoRep) GetOrders() ([]entity.Orders, error) {
+func (m *memoRep) GetOrders(login string) ([]entity.Orders, error) {
 	result := make([]entity.Orders, 0, len(m.orders))
 	for _, order := range m.orders {
-		result = append(result, entity.Orders{
-			OrderID:    order.OrderID,
-			Status:     order.Status,
-			Accrual:    order.Accrual,
-			UploadedAt: order.UploadedAt,
-		})
+		if order.UserLogin == login {
+			result = append(result, entity.Orders{
+				OrderID:    order.OrderID,
+				Status:     order.Status,
+				Accrual:    order.Accrual,
+				UploadedAt: order.UploadedAt,
+			})
+		}
 	}
 
 	return result, nil
@@ -107,10 +110,12 @@ func (m *memoRep) SaveWithdrawn(withdrawn entity.OrderWithdraw) error {
 	return nil
 }
 
-func (m *memoRep) GetWithdrawals() ([]entity.OrderWithdraw, error) {
+func (m *memoRep) GetWithdrawals(login string) ([]entity.OrderWithdraw, error) {
 	result := make([]entity.OrderWithdraw, 0, len(m.orders))
 	for _, order := range m.withdraw {
-		result = append(result, order)
+		if order.UserLogin == login {
+			result = append(result, order)
+		}
 	}
 
 	return result, nil

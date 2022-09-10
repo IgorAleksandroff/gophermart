@@ -5,11 +5,11 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/IgorAleksandroff/gophermart.git/internal/entity"
+	"github.com/IgorAleksandroff/gophermart/internal/entity"
 )
 
 //go:generate mockery --name Orders
-//go:generate mockery --name Repository
+//go:generate mockery --name OrdersRepository
 
 const accrualEndpoint = "/api/orders/"
 
@@ -18,44 +18,38 @@ var ErrExistOrderByAnotherUser = errors.New("order number already uploaded by an
 var ErrLowBalance = errors.New("low balance of current user")
 
 type ordersUsecase struct {
-	rep           repository
+	repo          ordersRepository
 	accrualClient apiClient
 }
 
 type Orders interface {
-	SaveUser(user entity.User) error
 	GetUser(login string) (entity.User, error)
 	SaveOrder(order entity.Order) error
-	GetOrders() ([]entity.Orders, error)
+	GetOrders(login string) ([]entity.Orders, error)
 	SaveWithdrawn(order entity.OrderWithdraw) error
-	GetWithdrawals() ([]entity.OrderWithdraw, error)
+	GetWithdrawals(login string) ([]entity.OrderWithdraw, error)
 }
 
-type repository interface {
-	SaveUser(user entity.User) error
+type ordersRepository interface {
 	GetUser(login string) (entity.User, error)
 	SaveOrder(order entity.Order) (*string, error)
-	GetOrders() ([]entity.Orders, error)
+	GetOrders(login string) ([]entity.Orders, error)
 	UpdateUser(user entity.User) error
 	SupplementBalance(order entity.Order) error
 	SaveWithdrawn(order entity.OrderWithdraw) error
-	GetWithdrawals() ([]entity.OrderWithdraw, error)
+	GetWithdrawals(login string) ([]entity.OrderWithdraw, error)
 }
 
 type apiClient interface {
 	DoGet(url string) ([]byte, error)
 }
 
-func NewOrders(r repository, c apiClient) ordersUsecase {
-	return ordersUsecase{rep: r, accrualClient: c}
-}
-
-func (o *ordersUsecase) SaveUser(user entity.User) error {
-	return o.rep.SaveUser(user)
+func NewOrders(r ordersRepository, c apiClient) *ordersUsecase {
+	return &ordersUsecase{repo: r, accrualClient: c}
 }
 
 func (o *ordersUsecase) GetUser(login string) (entity.User, error) {
-	return o.rep.GetUser(login)
+	return o.repo.GetUser(login)
 }
 
 func (o *ordersUsecase) SaveOrder(order entity.Order) error {
@@ -73,7 +67,7 @@ func (o *ordersUsecase) SaveOrder(order entity.Order) error {
 	order.Accrual = accrual.Accrual
 
 	// todo сохранить баланс в пользователя через транзакцию
-	userLogin, err := o.rep.SaveOrder(order)
+	userLogin, err := o.repo.SaveOrder(order)
 	if err != nil {
 		return err
 	}
@@ -85,7 +79,7 @@ func (o *ordersUsecase) SaveOrder(order entity.Order) error {
 		return ErrExistOrderByAnotherUser
 	}
 
-	err = o.rep.SupplementBalance(order)
+	err = o.repo.SupplementBalance(order)
 	if err != nil {
 		return err
 	}
@@ -93,12 +87,12 @@ func (o *ordersUsecase) SaveOrder(order entity.Order) error {
 	return nil
 }
 
-func (o *ordersUsecase) GetOrders() ([]entity.Orders, error) {
-	return o.rep.GetOrders()
+func (o *ordersUsecase) GetOrders(login string) ([]entity.Orders, error) {
+	return o.repo.GetOrders(login)
 }
 
 func (o *ordersUsecase) SaveWithdrawn(withdrawn entity.OrderWithdraw) error {
-	user, err := o.rep.GetUser(withdrawn.UserLogin)
+	user, err := o.repo.GetUser(withdrawn.UserLogin)
 	if err != nil {
 		return err
 	}
@@ -110,18 +104,18 @@ func (o *ordersUsecase) SaveWithdrawn(withdrawn entity.OrderWithdraw) error {
 	user.Withdrawn = +withdrawn.Value
 
 	// todo сохранить баланс в пользователя через транзакцию
-	err = o.rep.UpdateUser(user)
+	err = o.repo.UpdateUser(user)
 	if err != nil {
 		return err
 	}
 
-	if err = o.rep.SaveWithdrawn(withdrawn); err != nil {
+	if err = o.repo.SaveWithdrawn(withdrawn); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (o *ordersUsecase) GetWithdrawals() ([]entity.OrderWithdraw, error) {
-	return o.rep.GetWithdrawals()
+func (o *ordersUsecase) GetWithdrawals(login string) ([]entity.OrderWithdraw, error) {
+	return o.repo.GetWithdrawals(login)
 }

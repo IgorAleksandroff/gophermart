@@ -1,9 +1,10 @@
-module github.com/IgorAleksandroff/gophermart.git
+module github.com/IgorAleksandroff/gophermart
 
-go 1.19
+go 1.17
 
 require (
 	github.com/go-chi/chi v1.5.4
+	github.com/golang-jwt/jwt/v4 v4.4.2
 	github.com/rs/zerolog v1.28.0
 )
 
