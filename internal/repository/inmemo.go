@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	"github.com/IgorAleksandroff/gophermart/internal/entity"
+	"github.com/IgorAleksandroff/gophermart/pkg/logger"
 )
 
 var ErrUserRegister = errors.New("user already exist")
@@ -17,6 +18,7 @@ type memoRep struct {
 	users    map[string]entity.User
 	withdraw map[string]entity.OrderWithdraw
 	mu       *sync.Mutex
+	l        *logger.Logger
 }
 
 func NewMemoRepository() *memoRep {
@@ -104,7 +106,7 @@ func (m *memoRep) SupplementBalance(order entity.Order) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	if order.Accrual == nil {
+	if order.Accrual == 0 {
 		return nil
 	}
 
@@ -113,7 +115,7 @@ func (m *memoRep) SupplementBalance(order entity.Order) error {
 		return errors.New("unknown user")
 	}
 
-	userSaved.Current = +*order.Accrual
+	userSaved.Current = userSaved.Current + order.Accrual
 	m.users[order.UserLogin] = userSaved
 
 	return nil

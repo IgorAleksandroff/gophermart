@@ -64,7 +64,9 @@ func (o *ordersUsecase) SaveOrder(order entity.Order) error {
 		return fmt.Errorf("error parse answer from service accurual: %w", err)
 	}
 	order.Status = accrual.Status
-	order.Accrual = accrual.Accrual
+	if accrual.Accrual != nil {
+		order.Accrual = *accrual.Accrual
+	}
 
 	// todo сохранить баланс в пользователя через транзакцию
 	userLogin, err := o.repo.SaveOrder(order)
@@ -100,8 +102,8 @@ func (o *ordersUsecase) SaveWithdrawn(withdrawn entity.OrderWithdraw) error {
 	if withdrawn.Value > user.Current {
 		return ErrLowBalance
 	}
-	user.Current = -withdrawn.Value
-	user.Withdrawn = +withdrawn.Value
+	user.Current = user.Current - withdrawn.Value
+	user.Withdrawn = user.Withdrawn + withdrawn.Value
 
 	// todo сохранить баланс в пользователя через транзакцию
 	err = o.repo.UpdateUser(user)

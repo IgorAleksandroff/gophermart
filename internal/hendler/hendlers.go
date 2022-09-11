@@ -146,8 +146,12 @@ func (h *handler) HandlePostOrders(w http.ResponseWriter, r *http.Request) {
 
 	order := string(b)
 	orderNumber, err := strconv.Atoi(order)
-	if err != nil || !entity.Valid(orderNumber) {
-		http.Error(w, "invalid order number "+err.Error(), http.StatusUnprocessableEntity)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusUnprocessableEntity)
+		return
+	}
+	if !entity.Valid(orderNumber) {
+		http.Error(w, "invalid order number ", http.StatusUnprocessableEntity)
 		return
 	}
 
@@ -235,21 +239,25 @@ func (h *handler) HandlePostBalanceWithdraw(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	withdrawn := entity.OrderWithdraw{}
+	withdrawal := entity.OrderWithdraw{}
 	reader := json.NewDecoder(r.Body)
-	if err := reader.Decode(&withdrawn); err != nil {
+	if err := reader.Decode(&withdrawal); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	orderNumber, err := strconv.Atoi(withdrawn.OrderID)
-	if err != nil || !entity.Valid(orderNumber) {
-		http.Error(w, "invalid order number "+err.Error(), http.StatusUnprocessableEntity)
+	orderNumber, err := strconv.Atoi(withdrawal.OrderID)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusUnprocessableEntity)
+		return
+	}
+	if !entity.Valid(orderNumber) {
+		http.Error(w, "invalid withdrawal number ", http.StatusUnprocessableEntity)
 		return
 	}
 
-	withdrawn.UserLogin = r.Header.Get(authorizationHeader)
-	err = h.ordersUC.SaveWithdrawn(withdrawn)
+	withdrawal.UserLogin = r.Header.Get(authorizationHeader)
+	err = h.ordersUC.SaveWithdrawn(withdrawal)
 	if err != nil {
 		if errors.Is(err, usecase.ErrLowBalance) {
 			http.Error(w, err.Error(), http.StatusPaymentRequired)

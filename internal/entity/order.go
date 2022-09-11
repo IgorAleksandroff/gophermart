@@ -4,7 +4,7 @@ type Order struct {
 	OrderID    string
 	UserLogin  string
 	Status     string
-	Accrual    *float64
+	Accrual    float64
 	UploadedAt string
 }
 
@@ -16,10 +16,10 @@ type OrderWithdraw struct {
 }
 
 type Orders struct {
-	OrderID    string   `json:"number"`
-	Status     string   `json:"status"`
-	Accrual    *float64 `json:"accrual,omitempty"`
-	UploadedAt string   `json:"uploaded_at"`
+	OrderID    string  `json:"number"`
+	Status     string  `json:"status"`
+	Accrual    float64 `json:"accrual,omitempty"`
+	UploadedAt string  `json:"uploaded_at"`
 }
 
 type Accrual struct {
