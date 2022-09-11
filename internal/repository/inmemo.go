@@ -2,6 +2,7 @@ package repository
 
 import (
 	"errors"
+	"sync"
 
 	"github.com/IgorAleksandroff/gophermart/internal/entity"
 )
@@ -15,6 +16,7 @@ type memoRep struct {
 	orders   map[string]entity.Order
 	users    map[string]entity.User
 	withdraw map[string]entity.OrderWithdraw
+	mu       *sync.Mutex
 }
 
 func NewMemoRepository() *memoRep {
@@ -22,10 +24,13 @@ func NewMemoRepository() *memoRep {
 	u := make(map[string]entity.User)
 	w := make(map[string]entity.OrderWithdraw)
 
-	return &memoRep{orders: o, users: u, withdraw: w}
+	return &memoRep{orders: o, users: u, withdraw: w, mu: &sync.Mutex{}}
 }
 
 func (m *memoRep) SaveUser(user entity.User) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
 	_, ok := m.users[user.Login]
 	if ok {
 		return ErrUserRegister
@@ -37,6 +42,9 @@ func (m *memoRep) SaveUser(user entity.User) error {
 }
 
 func (m *memoRep) GetUser(login string) (entity.User, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
 	userSaved, ok := m.users[login]
 	if !ok {
 		return entity.User{}, ErrUserLogin
@@ -46,6 +54,9 @@ func (m *memoRep) GetUser(login string) (entity.User, error) {
 }
 
 func (m *memoRep) SaveOrder(order entity.Order) (*string, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
 	orderSaved, ok := m.orders[order.OrderID]
 	if ok {
 		return &orderSaved.UserLogin, nil
@@ -57,6 +68,9 @@ func (m *memoRep) SaveOrder(order entity.Order) (*string, error) {
 }
 
 func (m *memoRep) GetOrders(login string) ([]entity.Orders, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
 	result := make([]entity.Orders, 0, len(m.orders))
 	for _, order := range m.orders {
 		if order.UserLogin == login {
@@ -73,6 +87,9 @@ func (m *memoRep) GetOrders(login string) ([]entity.Orders, error) {
 }
 
 func (m *memoRep) UpdateUser(user entity.User) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
 	userSaved, ok := m.users[user.Login]
 	if ok {
 		return errors.New("unknown user")
@@ -84,6 +101,9 @@ func (m *memoRep) UpdateUser(user entity.User) error {
 }
 
 func (m *memoRep) SupplementBalance(order entity.Order) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
 	if order.Accrual == nil {
 		return nil
 	}
@@ -100,6 +120,9 @@ func (m *memoRep) SupplementBalance(order entity.Order) error {
 }
 
 func (m *memoRep) SaveWithdrawn(withdrawn entity.OrderWithdraw) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
 	_, ok := m.withdraw[withdrawn.OrderID]
 	if ok {
 		return errors.New("withdrawn already exist")
@@ -111,6 +134,9 @@ func (m *memoRep) SaveWithdrawn(withdrawn entity.OrderWithdraw) error {
 }
 
 func (m *memoRep) GetWithdrawals(login string) ([]entity.OrderWithdraw, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
 	result := make([]entity.OrderWithdraw, 0, len(m.orders))
 	for _, order := range m.withdraw {
 		if order.UserLogin == login {

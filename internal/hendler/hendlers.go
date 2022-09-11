@@ -122,19 +122,8 @@ func (h *handler) HandleUserLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	buf := bytes.NewBuffer([]byte{})
-	jsonEncoder := json.NewEncoder(buf)
-	err = jsonEncoder.Encode(map[string]interface{}{
-		"token": token,
-	})
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set(authorizationHeader, fmt.Sprintf("Bearer %s", token))
 	w.WriteHeader(http.StatusOK)
-	w.Write(buf.Bytes())
 }
 
 func (h *handler) HandlePostOrders(w http.ResponseWriter, r *http.Request) {
