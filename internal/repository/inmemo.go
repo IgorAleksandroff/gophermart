@@ -93,7 +93,7 @@ func (m *memoRep) UpdateUser(user entity.User) error {
 	defer m.mu.Unlock()
 
 	userSaved, ok := m.users[user.Login]
-	if ok {
+	if !ok {
 		return errors.New("unknown user")
 	}
 
