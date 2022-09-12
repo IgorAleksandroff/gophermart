@@ -18,7 +18,7 @@ import (
 
 const (
 	authorizationHeader = "Authorization"
-	userCtx             = "userId"
+	userCtx             = "login"
 )
 
 func (h *handler) UserIdentity(next http.Handler) http.Handler {
@@ -157,7 +157,7 @@ func (h *handler) HandlePostOrders(w http.ResponseWriter, r *http.Request) {
 
 	err = h.ordersUC.SaveOrder(entity.Order{
 		OrderID:    order,
-		UserLogin:  r.Header.Get(authorizationHeader),
+		UserLogin:  r.Header.Get(userCtx),
 		UploadedAt: time.Now().Format(time.RFC3339),
 	})
 	if err != nil {
@@ -178,7 +178,7 @@ func (h *handler) HandlePostOrders(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *handler) HandleGetOrders(w http.ResponseWriter, r *http.Request) {
-	orders, err := h.ordersUC.GetOrders(r.Header.Get(authorizationHeader))
+	orders, err := h.ordersUC.GetOrders(r.Header.Get(userCtx))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -203,7 +203,7 @@ func (h *handler) HandleGetOrders(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *handler) HandleGetBalance(w http.ResponseWriter, r *http.Request) {
-	user, err := h.ordersUC.GetUser(r.Header.Get(authorizationHeader))
+	user, err := h.ordersUC.GetUser(r.Header.Get(userCtx))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -256,7 +256,7 @@ func (h *handler) HandlePostBalanceWithdraw(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	withdrawal.UserLogin = r.Header.Get(authorizationHeader)
+	withdrawal.UserLogin = r.Header.Get(userCtx)
 	err = h.ordersUC.SaveWithdrawn(withdrawal)
 	if err != nil {
 		if errors.Is(err, usecase.ErrLowBalance) {
@@ -272,7 +272,7 @@ func (h *handler) HandlePostBalanceWithdraw(w http.ResponseWriter, r *http.Reque
 }
 
 func (h *handler) HandleGetWithdrawals(w http.ResponseWriter, r *http.Request) {
-	orders, err := h.ordersUC.GetWithdrawals(r.Header.Get(authorizationHeader))
+	orders, err := h.ordersUC.GetWithdrawals(r.Header.Get(userCtx))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

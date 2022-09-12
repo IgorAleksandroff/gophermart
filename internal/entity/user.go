@@ -8,7 +8,7 @@ type User struct {
 }
 
 type Balance struct {
-	Login     string  `json:-`
+	Login     string  `json:"-"`
 	Current   float64 `json:"current"`
 	Withdrawn float64 `json:"withdrawn"`
 }
