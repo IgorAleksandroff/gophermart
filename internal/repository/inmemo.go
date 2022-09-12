@@ -92,12 +92,12 @@ func (m *memoRep) UpdateUser(user entity.User) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	userSaved, ok := m.users[user.Login]
+	_, ok := m.users[user.Login]
 	if !ok {
 		return errors.New("unknown user")
 	}
 
-	m.users[user.Login] = userSaved
+	m.users[user.Login] = user
 
 	return nil
 }
