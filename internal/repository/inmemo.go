@@ -111,7 +111,7 @@ func (m *memoRep) SupplementBalance(order entity.Order) error {
 	}
 
 	userSaved, ok := m.users[order.UserLogin]
-	if ok {
+	if !ok {
 		return errors.New("unknown user")
 	}
 
