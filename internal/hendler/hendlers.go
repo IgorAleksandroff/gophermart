@@ -151,6 +151,7 @@ func (h *handler) HandlePostOrders(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if !entity.Valid(orderNumber) {
+		h.l.Warn("invalid order number")
 		http.Error(w, "invalid order number ", http.StatusUnprocessableEntity)
 		return
 	}
@@ -161,6 +162,7 @@ func (h *handler) HandlePostOrders(w http.ResponseWriter, r *http.Request) {
 		UploadedAt: time.Now().Format(time.RFC3339),
 	})
 	if err != nil {
+		h.l.Warn(err.Error())
 		if errors.Is(err, usecase.ErrExistOrderByThisUser) {
 			http.Error(w, err.Error(), http.StatusOK)
 			return
