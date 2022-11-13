@@ -33,7 +33,7 @@ func NewApp(cfg *config.Config) (*app, error) {
 
 	var repo usecase.OrdersRepository
 	var authRepo usecase.UserRepository
-	if cfg.App.DataBaseURI == "test" {
+	if cfg.App.DataBaseURI != "" {
 		pgRepo := repository.NewPGRepository(l, cfg.App.DataBaseURI)
 		repo, authRepo = pgRepo, pgRepo
 	} else {
