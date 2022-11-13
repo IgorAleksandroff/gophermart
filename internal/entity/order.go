@@ -1,25 +1,25 @@
 package entity
 
 type Order struct {
-	OrderID    string
-	UserLogin  string
-	Status     string
-	Accrual    float64
-	UploadedAt string
+	OrderID    string  `db:"order_id"`
+	UserLogin  string  `db:"user_login"`
+	Status     string  `db:"status"`
+	Accrual    float64 `db:"accrual"`
+	UploadedAt string  `db:"uploaded_at"`
 }
 
 type OrderWithdraw struct {
-	OrderID     string `json:"order"`
-	UserLogin   string
-	Value       float64 `json:"sum"`
-	ProcessedAt string  `json:"processed_at,omitempty"`
+	OrderID     string  `json:"order" db:"order_id"`
+	UserLogin   string  `db:"user_login"`
+	Value       float64 `json:"sum" db:"value"`
+	ProcessedAt string  `json:"processed_at,omitempty" db:"processed_at"`
 }
 
 type Orders struct {
-	OrderID    string  `json:"number"`
-	Status     string  `json:"status"`
-	Accrual    float64 `json:"accrual,omitempty"`
-	UploadedAt string  `json:"uploaded_at"`
+	OrderID    string  `json:"number" db:"order_id"`
+	Status     string  `json:"status" db:"status"`
+	Accrual    float64 `json:"accrual,omitempty" db:"accrual"`
+	UploadedAt string  `json:"uploaded_at" db:"uploaded_at"`
 }
 
 type Accrual struct {

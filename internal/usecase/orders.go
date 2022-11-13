@@ -18,7 +18,7 @@ var ErrExistOrderByAnotherUser = errors.New("order number already uploaded by an
 var ErrLowBalance = errors.New("low balance of current user")
 
 type ordersUsecase struct {
-	repo          ordersRepository
+	repo          OrdersRepository
 	accrualClient apiClient
 }
 
@@ -30,21 +30,23 @@ type Orders interface {
 	GetWithdrawals(login string) ([]entity.OrderWithdraw, error)
 }
 
-type ordersRepository interface {
+type OrdersRepository interface {
 	GetUser(login string) (entity.User, error)
-	SaveOrder(order entity.Order) (*string, error)
+	SaveOrder(order entity.Order) error
+	GetOrder(orderID string) (*entity.Order, error)
 	GetOrders(login string) ([]entity.Orders, error)
 	UpdateUser(user entity.User) error
 	SupplementBalance(order entity.Order) error
 	SaveWithdrawn(order entity.OrderWithdraw) error
 	GetWithdrawals(login string) ([]entity.OrderWithdraw, error)
+	Close()
 }
 
 type apiClient interface {
 	DoGet(url string) ([]byte, error)
 }
 
-func NewOrders(r ordersRepository, c apiClient) *ordersUsecase {
+func NewOrders(r OrdersRepository, c apiClient) *ordersUsecase {
 	return &ordersUsecase{repo: r, accrualClient: c}
 }
 
@@ -68,17 +70,19 @@ func (o *ordersUsecase) SaveOrder(order entity.Order) error {
 		order.Accrual = *accrual.Accrual
 	}
 
-	// todo сохранить баланс в пользователя через транзакцию
-	userLogin, err := o.repo.SaveOrder(order)
-	if err != nil {
-		return err
-	}
-	if userLogin != nil {
-		if *userLogin == order.UserLogin {
-			return ErrExistOrderByThisUser
+	var existError error
+	existedOrder, _ := o.repo.GetOrder(order.OrderID)
+	if existedOrder != nil {
+		if existedOrder.UserLogin != order.UserLogin {
+			return ErrExistOrderByAnotherUser
 		}
 
-		return ErrExistOrderByAnotherUser
+		existError = ErrExistOrderByThisUser
+	}
+
+	err = o.repo.SaveOrder(order)
+	if err != nil {
+		return err
 	}
 
 	err = o.repo.SupplementBalance(order)
@@ -86,7 +90,7 @@ func (o *ordersUsecase) SaveOrder(order entity.Order) error {
 		return err
 	}
 
-	return nil
+	return existError
 }
 
 func (o *ordersUsecase) GetOrders(login string) ([]entity.Orders, error) {
@@ -105,7 +109,6 @@ func (o *ordersUsecase) SaveWithdrawn(withdrawn entity.OrderWithdraw) error {
 	user.Current = user.Current - withdrawn.Value
 	user.Withdrawn = user.Withdrawn + withdrawn.Value
 
-	// todo сохранить баланс в пользователя через транзакцию
 	err = o.repo.UpdateUser(user)
 	if err != nil {
 		return err

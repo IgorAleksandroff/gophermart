@@ -22,7 +22,7 @@ const (
 var ErrUserLogin = errors.New("invalid password or login")
 
 type authService struct {
-	repo userRepository
+	repo UserRepository
 }
 
 type Authorization interface {
@@ -31,7 +31,7 @@ type Authorization interface {
 	ParseToken(token string) (string, error)
 }
 
-type userRepository interface {
+type UserRepository interface {
 	SaveUser(user entity.User) error
 	GetUser(login string) (entity.User, error)
 }
@@ -41,7 +41,7 @@ type tokenClaims struct {
 	UserLogin string `json:"login"`
 }
 
-func NewAuthorization(repo userRepository) *authService {
+func NewAuthorization(repo UserRepository) *authService {
 	return &authService{repo: repo}
 }
 

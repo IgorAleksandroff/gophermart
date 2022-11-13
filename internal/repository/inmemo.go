@@ -8,11 +8,6 @@ import (
 	"github.com/IgorAleksandroff/gophermart/pkg/logger"
 )
 
-var ErrUserRegister = errors.New("user already exist")
-var ErrUserLogin = errors.New("unknown user")
-
-// balance    DECIMAL(16, 4) NOT NULL DEFAULT 0
-// На практике - флоат нужен только для баланса
 type memoRep struct {
 	orders   map[string]entity.Order
 	users    map[string]entity.User
@@ -21,12 +16,12 @@ type memoRep struct {
 	l        *logger.Logger
 }
 
-func NewMemoRepository() *memoRep {
+func NewMemoRepository(log *logger.Logger) *memoRep {
 	o := make(map[string]entity.Order)
 	u := make(map[string]entity.User)
 	w := make(map[string]entity.OrderWithdraw)
 
-	return &memoRep{orders: o, users: u, withdraw: w, mu: &sync.Mutex{}}
+	return &memoRep{orders: o, users: u, withdraw: w, mu: &sync.Mutex{}, l: log}
 }
 
 func (m *memoRep) SaveUser(user entity.User) error {
@@ -55,18 +50,25 @@ func (m *memoRep) GetUser(login string) (entity.User, error) {
 	return userSaved, nil
 }
 
-func (m *memoRep) SaveOrder(order entity.Order) (*string, error) {
+func (m *memoRep) GetOrder(orderID string) (*entity.Order, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	orderSaved, ok := m.orders[order.OrderID]
-	if ok {
-		return &orderSaved.UserLogin, nil
+	existedOrder, ok := m.orders[orderID]
+	if !ok {
+		return nil, errors.New("unknown order")
 	}
+
+	return &existedOrder, nil
+}
+
+func (m *memoRep) SaveOrder(order entity.Order) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
 
 	m.orders[order.OrderID] = order
 
-	return nil, nil
+	return nil
 }
 
 func (m *memoRep) GetOrders(login string) ([]entity.Orders, error) {
@@ -148,3 +150,5 @@ func (m *memoRep) GetWithdrawals(login string) ([]entity.OrderWithdraw, error) {
 
 	return result, nil
 }
+
+func (m *memoRep) Close() {}

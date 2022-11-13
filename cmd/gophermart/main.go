@@ -9,6 +9,7 @@ import (
 
 func main() {
 	app, err := app.NewApp(config.GetConfig())
+	defer app.Cancel()
 
 	if err != nil {
 		log.Fatalf("Create app error: %s", err)

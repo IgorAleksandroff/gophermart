@@ -22,16 +22,28 @@ type app struct {
 	cfg    *config.Config
 	router http.Handler
 	l      *logger.Logger
+	Cancel cancelFunc
 }
+
+type cancelFunc func()
 
 func NewApp(cfg *config.Config) (*app, error) {
 	l := logger.New(cfg.App.LogLevel)
 	r := chi.NewRouter()
 
-	repo := repository.NewMemoRepository()
+	var repo usecase.OrdersRepository
+	var authRepo usecase.UserRepository
+	if cfg.App.DataBaseURI == "test" {
+		pgRepo := repository.NewPGRepository(l, cfg.App.DataBaseURI)
+		repo, authRepo = pgRepo, pgRepo
+	} else {
+		inMemoRepo := repository.NewMemoRepository(l)
+		repo, authRepo = inMemoRepo, inMemoRepo
+	}
+
 	apiClient := webapi.NewClient(cfg.App.AccrualSystemAddress)
 	ordersUsecase := usecase.NewOrders(repo, apiClient)
-	auth := usecase.NewAuthorization(repo)
+	auth := usecase.NewAuthorization(authRepo)
 
 	h := hendler.New(ordersUsecase, auth, l)
 
@@ -53,6 +65,7 @@ func NewApp(cfg *config.Config) (*app, error) {
 		cfg:    cfg,
 		router: r,
 		l:      l,
+		Cancel: repo.Close,
 	}, nil
 }
 
