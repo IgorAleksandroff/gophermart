@@ -211,7 +211,11 @@ func (p *pgRep) SaveWithdrawn(withdrawn entity.OrderWithdraw) error {
 		withdrawn.ProcessedAt,
 	)
 
-	return fmt.Errorf("error to save withdrawn: %w, %+v", err, withdrawn)
+	if err != nil {
+		return fmt.Errorf("error to save withdrawn: %w, %+v", err, withdrawn)
+	}
+
+	return nil
 }
 
 func (p *pgRep) GetWithdrawals(login string) ([]entity.OrderWithdraw, error) {
