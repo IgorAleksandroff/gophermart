@@ -34,17 +34,13 @@ func NewApp(cfg *config.Config) (*app, error) {
 
 	var repo usecase.OrdersRepository
 	var authRepo usecase.UserRepository
-	inMemoRepo := repository.NewMemoRepository(l)
 	if cfg.App.DataBaseURI != "" {
 		log.Println("debug: DataBaseURI - ", cfg.App.DataBaseURI)
 
-		pgRepo, err := repository.NewPGRepository(l, cfg.App.DataBaseURI)
+		pgRepo := repository.NewPGRepository(l, cfg.App.DataBaseURI)
 		repo, authRepo = pgRepo, pgRepo
-		if err != nil {
-			log.Println(err)
-			repo, authRepo = inMemoRepo, inMemoRepo
-		}
 	} else {
+		inMemoRepo := repository.NewMemoRepository(l)
 		repo, authRepo = inMemoRepo, inMemoRepo
 	}
 

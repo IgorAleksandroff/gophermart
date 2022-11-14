@@ -64,18 +64,18 @@ type pgRep struct {
 	l   *logger.Logger
 }
 
-func NewPGRepository(log *logger.Logger, addressDB string) (*pgRep, error) {
+func NewPGRepository(log *logger.Logger, addressDB string) *pgRep {
 	db, err := sqlx.Connect("postgres", addressDB)
 	if err != nil {
-		return nil, fmt.Errorf("app - New - postgres.New: %w", err)
+		log.Fatal(fmt.Errorf("app - New - postgres.New: %w", err))
 	}
 
 	repositoryPG := pgRep{ctx: context.Background(), db: db, l: log}
 	if err = repositoryPG.init(); err != nil {
-		return nil, fmt.Errorf("app - New - postgres.Init: %w", err)
+		log.Fatal(fmt.Errorf("app - New - postgres.`Init`: %w", err))
 	}
 
-	return &repositoryPG, nil
+	return &repositoryPG
 }
 
 func (p *pgRep) init() error {
