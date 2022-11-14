@@ -37,7 +37,7 @@ const (
 	`
 	querySaveUser = `INSERT INTO users (login, password) VALUES ($1, $2)
 		ON CONFLICT (login) DO NOTHING`
-	queryGetUser    = `SELECT login, password, current, withdrawn FROM users WHERE login = $1`
+	queryGetUser    = `SELECT login, password, current, withdrawn FROM users WHERE login = $1 LIMIT 1`
 	queryUpdateUser = `UPDATE users 
 		SET password = $2,
 				current = $3,
@@ -111,7 +111,7 @@ func (p *pgRep) GetUser(login string) (entity.User, error) {
 
 	err := p.db.SelectContext(
 		p.ctx,
-		user,
+		&user,
 		queryGetUser,
 		login,
 	)
