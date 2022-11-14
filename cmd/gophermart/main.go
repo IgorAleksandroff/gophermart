@@ -8,7 +8,6 @@ import (
 )
 
 func main() {
-	log.Println("debug: start main")
 	app, err := app.NewApp(config.GetConfig())
 	defer app.Cancel()
 

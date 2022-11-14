@@ -2,7 +2,6 @@ package app
 
 import (
 	"fmt"
-	"log"
 	"net/http"
 	"os"
 	"os/signal"
@@ -35,8 +34,6 @@ func NewApp(cfg *config.Config) (*app, error) {
 	var repo usecase.OrdersRepository
 	var authRepo usecase.UserRepository
 	if cfg.App.DataBaseURI != "" {
-		log.Println("debug: DataBaseURI - ", cfg.App.DataBaseURI)
-
 		pgRepo := repository.NewPGRepository(l, cfg.App.DataBaseURI)
 		repo, authRepo = pgRepo, pgRepo
 	} else {
