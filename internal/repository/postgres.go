@@ -4,9 +4,11 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/jmoiron/sqlx"
+	_ "github.com/lib/pq"
+
 	"github.com/IgorAleksandroff/gophermart/internal/entity"
 	"github.com/IgorAleksandroff/gophermart/pkg/logger"
-	"github.com/jmoiron/sqlx"
 )
 
 const (
