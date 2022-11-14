@@ -15,7 +15,7 @@ const (
 	queryCreateTables = `CREATE TABLE IF NOT EXISTS users (
 			id serial,
 			login VARCHAR(64) primary key,
-			password VARCHAR(64) DEFAULT NULL,
+			password VARCHAR(128) DEFAULT NULL,
 			current DECIMAL(16, 4) NOT NULL DEFAULT 0,
 			withdrawn DECIMAL(16, 4) NOT NULL DEFAULT 0
 		);
