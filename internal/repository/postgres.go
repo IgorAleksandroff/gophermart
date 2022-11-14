@@ -134,24 +134,30 @@ func (p *pgRep) SaveOrder(order entity.Order) error {
 		order.Accrual,
 		order.UploadedAt,
 	)
+	if err != nil {
+		return fmt.Errorf("error to save order: %w, %+v", err, order)
+	}
 
-	return fmt.Errorf("error to save order: %w, %+v", err, order)
+	return nil
 }
 
 func (p *pgRep) GetOrder(orderID string) (*entity.Order, error) {
-	var order entity.Order
+	var orders []entity.Order
 
 	err := p.db.SelectContext(
 		p.ctx,
-		&order,
+		&orders,
 		queryGetOrder,
 		orderID,
 	)
 	if err != nil {
 		return nil, err
 	}
+	if len(orders) == 0 {
+		return nil, fmt.Errorf("unknown odrer: %s", orderID)
+	}
 
-	return &order, nil
+	return &orders[0], nil
 }
 
 func (p *pgRep) GetOrders(login string) ([]entity.Orders, error) {
