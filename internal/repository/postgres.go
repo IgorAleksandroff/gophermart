@@ -17,7 +17,7 @@ const (
 			login VARCHAR(64) primary key,
 			password VARCHAR(64) DEFAULT NULL,
 			current DECIMAL(16, 4) NOT NULL DEFAULT 0,
-			withdrawn DECIMAL(16, 4) NOT NULL DEFAULT 0,
+			withdrawn DECIMAL(16, 4) NOT NULL DEFAULT 0
 		);
 		CREATE TABLE IF NOT EXISTS orders (
 			id serial,
@@ -72,7 +72,7 @@ func NewPGRepository(log *logger.Logger, addressDB string) (*pgRep, error) {
 
 	repositoryPG := pgRep{ctx: context.Background(), db: db, l: log}
 	if err = repositoryPG.init(); err != nil {
-		return nil, fmt.Errorf("app - New - postgres.`Init`: %w", err)
+		return nil, fmt.Errorf("app - New - postgres.Init: %w", err)
 	}
 
 	return &repositoryPG, nil
