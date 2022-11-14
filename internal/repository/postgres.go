@@ -184,7 +184,11 @@ func (p *pgRep) UpdateUser(user entity.User) error {
 		user.Withdrawn,
 	)
 
-	return fmt.Errorf("error to update user: %w, %+v", err, user)
+	if err != nil {
+		return fmt.Errorf("error to update user: %w, %+v", err, user)
+	}
+
+	return nil
 }
 
 func (p *pgRep) SupplementBalance(order entity.Order) error {
