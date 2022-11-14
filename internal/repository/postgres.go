@@ -37,7 +37,7 @@ const (
 	`
 	querySaveUser = `INSERT INTO users (login, password) VALUES ($1, $2)
 		ON CONFLICT (login) DO NOTHING`
-	queryGetUser    = `SELECT login, password, current, withdrawn FROM users WHERE login = $1 LIMIT 1`
+	queryGetUser    = `SELECT login, password, current, withdrawn FROM users WHERE login = $1`
 	queryUpdateUser = `UPDATE users 
 		SET password = $2,
 				current = $3,
@@ -107,19 +107,23 @@ func (p *pgRep) SaveUser(user entity.User) error {
 }
 
 func (p *pgRep) GetUser(login string) (entity.User, error) {
-	var user entity.User
+	var users []entity.User
 
 	err := p.db.SelectContext(
 		p.ctx,
-		&user,
+		&users,
 		queryGetUser,
 		login,
 	)
 	if err != nil {
-		return user, fmt.Errorf("error to get user: %w, %s", err, login)
+		return entity.User{}, fmt.Errorf("error to get users: %w, %s", err, login)
 	}
 
-	return user, nil
+	if len(users) == 0 {
+		return entity.User{}, fmt.Errorf("unknown user: %s", login)
+	}
+
+	return users[0], nil
 }
 
 func (p *pgRep) SaveOrder(order entity.Order) error {
