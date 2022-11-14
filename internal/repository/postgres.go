@@ -92,7 +92,8 @@ func (p *pgRep) SaveUser(user entity.User) error {
 		user.Password,
 	)
 	if err != nil {
-		return err
+		return fmt.Errorf("error to save user: %w, %+v", err, user)
+
 	}
 	affected, err := res.RowsAffected()
 	if err != nil {
@@ -130,7 +131,7 @@ func (p *pgRep) SaveOrder(order entity.Order) error {
 		order.UploadedAt,
 	)
 
-	return err
+	return fmt.Errorf("error to save order: %w, %+v", err, order)
 }
 
 func (p *pgRep) GetOrder(orderID string) (*entity.Order, error) {
@@ -173,7 +174,7 @@ func (p *pgRep) UpdateUser(user entity.User) error {
 		user.Withdrawn,
 	)
 
-	return err
+	return fmt.Errorf("error to update user: %w, %+v", err, user)
 }
 
 func (p *pgRep) SupplementBalance(order entity.Order) error {
@@ -186,7 +187,7 @@ func (p *pgRep) SupplementBalance(order entity.Order) error {
 		order.Accrual,
 	)
 
-	return err
+	return fmt.Errorf("error to supplement balance: %w, %+v", err, order)
 }
 
 func (p *pgRep) SaveWithdrawn(withdrawn entity.OrderWithdraw) error {
@@ -197,7 +198,7 @@ func (p *pgRep) SaveWithdrawn(withdrawn entity.OrderWithdraw) error {
 		withdrawn.ProcessedAt,
 	)
 
-	return err
+	return fmt.Errorf("error to save withdrawn: %w, %+v", err, withdrawn)
 }
 
 func (p *pgRep) GetWithdrawals(login string) ([]entity.OrderWithdraw, error) {
