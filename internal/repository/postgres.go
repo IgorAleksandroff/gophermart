@@ -111,12 +111,12 @@ func (p *pgRep) GetUser(login string) (entity.User, error) {
 
 	err := p.db.SelectContext(
 		p.ctx,
-		&user,
+		user,
 		queryGetUser,
 		login,
 	)
 	if err != nil {
-		return user, err
+		return user, fmt.Errorf("error to get user: %w, %s", err, login)
 	}
 
 	return user, nil
