@@ -196,8 +196,11 @@ func (p *pgRep) SupplementBalance(order entity.Order) error {
 		order.UserLogin,
 		order.Accrual,
 	)
+	if err != nil {
+		return fmt.Errorf("error to supplement balance: %w, %+v", err, order)
+	}
 
-	return fmt.Errorf("error to supplement balance: %w, %+v", err, order)
+	return nil
 }
 
 func (p *pgRep) SaveWithdrawn(withdrawn entity.OrderWithdraw) error {
