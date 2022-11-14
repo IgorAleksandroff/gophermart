@@ -42,6 +42,8 @@ var instance *Config
 var once sync.Once
 
 func GetConfig() *Config {
+	log.Println("debug: Parse config")
+
 	once.Do(func() {
 		log.Println("Parse config with osArgs:", os.Args)
 
