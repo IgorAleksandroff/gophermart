@@ -63,7 +63,7 @@ func (o *ordersUsecase) SaveOrder(order entity.Order) error {
 
 	err = json.Unmarshal(out, &accrual)
 	if err != nil {
-		return fmt.Errorf("error parse answer from service accurual: %w", err)
+		return fmt.Errorf("error with order %v parse answer from service accurual: %w", order.OrderID, err)
 	}
 	order.Status = accrual.Status
 	if accrual.Accrual != nil {
