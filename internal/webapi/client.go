@@ -7,8 +7,6 @@ import (
 	"io"
 	"log"
 	"net/http"
-
-	"github.com/pkg/errors"
 )
 
 //go:generate mockery --name "Client"
@@ -37,7 +35,7 @@ func NewClient(serverName string) Client {
 func (c client) Do(req *http.Request) (body []byte, err error) {
 	r, err := c.transport.Do(req)
 	if err != nil {
-		return nil, errors.Wrap(err, fmt.Sprintf("status code: %v", r.StatusCode))
+		return nil, fmt.Errorf("status code: %v; %w", r.StatusCode, err)
 	}
 	defer r.Body.Close()
 
