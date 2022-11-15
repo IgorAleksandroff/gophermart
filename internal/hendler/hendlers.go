@@ -151,7 +151,7 @@ func (h *handler) HandlePostOrders(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if !entity.Valid(orderNumber) {
-		h.l.Warn("invalid order number")
+		h.l.Warn("invalid order number: ", orderNumber)
 		http.Error(w, "invalid order number ", http.StatusUnprocessableEntity)
 		return
 	}

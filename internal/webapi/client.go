@@ -3,9 +3,12 @@ package webapi
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
+
+	"github.com/pkg/errors"
 )
 
 //go:generate mockery --name "Client"
@@ -34,7 +37,7 @@ func NewClient(serverName string) Client {
 func (c client) Do(req *http.Request) (body []byte, err error) {
 	r, err := c.transport.Do(req)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, fmt.Sprintf("status code: %v", r.StatusCode))
 	}
 	defer r.Body.Close()
 

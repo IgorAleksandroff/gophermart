@@ -58,7 +58,7 @@ func (o *ordersUsecase) SaveOrder(order entity.Order) error {
 	var accrual entity.Accrual
 	out, err := o.accrualClient.DoGet(accrualEndpoint + order.OrderID)
 	if err != nil {
-		return fmt.Errorf("error from service accurual: %w", err)
+		return fmt.Errorf("error with order %v from service accurual: %w", order.OrderID, err)
 	}
 
 	err = json.Unmarshal(out, &accrual)
