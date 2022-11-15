@@ -53,7 +53,7 @@ const (
 	queryGetOrder  = `SELECT order_id, user_login, status, accrual, uploaded_at FROM orders WHERE order_id = $1`
 	queryGetOrders = `SELECT order_id, status, accrual, uploaded_at FROM orders WHERE user_login = $1`
 
-	querySaveWithdrawn = `INSERT INTO orders_withdraws (order_id, user_login, value, processed_at) VALUES ($1, $2)
+	querySaveWithdrawn = `INSERT INTO orders_withdraws (order_id, user_login, value, processed_at) VALUES ($1, $2, $3, $4)
 		ON CONFLICT (order_id) DO NOTHING`
 	queryGetWithdrawals = `SELECT order_id, user_login, value, processed_at FROM orders_withdraws WHERE user_login = $1`
 )

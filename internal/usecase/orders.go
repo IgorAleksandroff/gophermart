@@ -116,7 +116,7 @@ func (o *ordersUsecase) SaveWithdrawn(withdrawn entity.OrderWithdraw) error {
 	}
 
 	if err = o.repo.SaveWithdrawn(withdrawn); err != nil {
-		fmt.Println("debug: start SaveWithdrawn")
+		fmt.Println("debug: start SaveWithdrawn; ", err)
 
 		return err
 	}
