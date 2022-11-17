@@ -61,6 +61,8 @@ func (o *ordersUsecase) SaveOrder(order entity.Order) error {
 		return fmt.Errorf("error with order %v from service accurual: %w", order.OrderID, err)
 	}
 
+	fmt.Printf("debug: out of order %v from service accurual: %s.\n", order.OrderID, out)
+
 	err = json.Unmarshal(out, &accrual)
 	if err != nil {
 		return fmt.Errorf("error with order %v parse answer from service accurual: %w", order.OrderID, err)
