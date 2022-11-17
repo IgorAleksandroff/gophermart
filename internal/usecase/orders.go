@@ -62,8 +62,6 @@ func (o *ordersUsecase) SaveOrder(order entity.Order) error {
 		return fmt.Errorf("error with order %v from service accurual: %w", order.OrderID, err)
 	}
 
-	fmt.Printf("debug: out of order %v from service accurual: %s, len = %v", order.OrderID, out, len(out))
-
 	err = json.Unmarshal(out, &accrual)
 	if err != nil && len(out) != 0 {
 		return fmt.Errorf("error with order %v parse answer from service accurual: %w", order.OrderID, err)
@@ -119,13 +117,10 @@ func (o *ordersUsecase) SaveWithdrawn(withdrawn entity.OrderWithdraw) error {
 
 	err = o.repo.UpdateUser(user)
 	if err != nil {
-		fmt.Println("debug: error o.repo.UpdateUser: ", err)
 		return err
 	}
 
 	if err = o.repo.SaveWithdrawn(withdrawn); err != nil {
-		fmt.Println("debug: start SaveWithdrawn; ", err)
-
 		return err
 	}
 
