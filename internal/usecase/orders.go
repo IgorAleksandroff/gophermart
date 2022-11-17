@@ -12,7 +12,7 @@ import (
 //go:generate mockery --name OrdersRepository
 
 const accrualEndpoint = "/api/orders/"
-const accrualStatusNoContent = "no content"
+const accrualStatusNoContent = "PROCESSING"
 
 var ErrExistOrderByThisUser = errors.New("order number already uploaded by this user")
 var ErrExistOrderByAnotherUser = errors.New("order number already uploaded by another user")
