@@ -12,6 +12,7 @@ import (
 //go:generate mockery --name OrdersRepository
 
 const accrualEndpoint = "/api/orders/"
+const accrualStatusNoContent = "no content"
 
 var ErrExistOrderByThisUser = errors.New("order number already uploaded by this user")
 var ErrExistOrderByAnotherUser = errors.New("order number already uploaded by another user")
@@ -61,12 +62,17 @@ func (o *ordersUsecase) SaveOrder(order entity.Order) error {
 		return fmt.Errorf("error with order %v from service accurual: %w", order.OrderID, err)
 	}
 
-	fmt.Printf("debug: out of order %v from service accurual: %s.\n", order.OrderID, out)
+	fmt.Printf("debug: out of order %v from service accurual: %s, len = %v", order.OrderID, out, len(out))
 
 	err = json.Unmarshal(out, &accrual)
-	if err != nil {
+	if err != nil && len(out) != 0 {
 		return fmt.Errorf("error with order %v parse answer from service accurual: %w", order.OrderID, err)
 	}
+
+	if len(out) == 0 {
+		accrual.Status = accrualStatusNoContent
+	}
+
 	order.Status = accrual.Status
 	if accrual.Accrual != nil {
 		order.Accrual = *accrual.Accrual
