@@ -182,6 +182,9 @@ func (p *pgRep) UpdateUser(user entity.User) error {
 		user.Current,
 		user.Withdrawn,
 	)
+	if err != nil {
+		return fmt.Errorf("error to update user: %w, %+v", err, user)
+	}
 
 	rows, err := res.RowsAffected()
 	if err != nil {
@@ -189,10 +192,6 @@ func (p *pgRep) UpdateUser(user entity.User) error {
 	}
 	if rows <= 0 {
 		return fmt.Errorf("rows affected %v <= 0, after update user: %+v", rows, user)
-	}
-
-	if err != nil {
-		return fmt.Errorf("error to update user: %w, %+v", err, user)
 	}
 
 	return nil
