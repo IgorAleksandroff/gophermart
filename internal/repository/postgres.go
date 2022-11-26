@@ -14,23 +14,21 @@ import (
 const (
 	queryCreateTables = `CREATE TABLE IF NOT EXISTS users (
 			id serial,
-			login VARCHAR(64) primary key,
-			password VARCHAR(128) DEFAULT NULL,
+			login VARCHAR(64) PRIMARY KEY,
+			password VARCHAR(128),
 			current DECIMAL(16, 4) NOT NULL DEFAULT 0,
 			withdrawn DECIMAL(16, 4) NOT NULL DEFAULT 0
 		);
 		CREATE TABLE IF NOT EXISTS orders (
-			id serial,
-			order_id VARCHAR(64) primary key,
-			user_login VARCHAR(32) NOT NULL,
+			order_id VARCHAR(64) PRIMARY KEY,
+			login VARCHAR(64) REFERENCES users(login),
 			status VARCHAR(32) NOT NULL,
 			accrual DECIMAL(16, 4) NOT NULL DEFAULT 0,
 			uploaded_at VARCHAR(32) NOT NULL
 		);
 		CREATE TABLE IF NOT EXISTS orders_withdraws (
-			id serial,
-			order_id VARCHAR(64) primary key,
-			user_login VARCHAR(32) NOT NULL,
+			order_id VARCHAR(64) PRIMARY KEY,
+			login VARCHAR(64) REFERENCES users(login),
 			value DECIMAL(16, 4) NOT NULL DEFAULT 0,
 			processed_at VARCHAR(32) NOT NULL
 		);
@@ -39,23 +37,22 @@ const (
 		ON CONFLICT (login) DO NOTHING`
 	queryGetUser    = `SELECT login, password, current, withdrawn FROM users WHERE login = $1`
 	queryUpdateUser = `UPDATE users 
-		SET password = $2,
-				current = $3,
-				withdrawn = $4
+		SET current = $2,
+				withdrawn = $3
 		WHERE login = $1`
 	querySupplementUser = `UPDATE users 
 		SET current = current + $2
 		WHERE login = $1`
 
-	querySaveOrder = `INSERT INTO orders (order_id, user_login, status, accrual, uploaded_at) VALUES ($1, $2, $3, $4, $5)
+	querySaveOrder = `INSERT INTO orders (order_id, login, status, accrual, uploaded_at) VALUES ($1, $2, $3, $4, $5)
 		ON CONFLICT (order_id) DO UPDATE
-		    SET (user_login, status, accrual, uploaded_at) = (EXCLUDED.user_login, EXCLUDED.status, EXCLUDED.accrual, EXCLUDED.uploaded_at)`
-	queryGetOrder  = `SELECT order_id, user_login, status, accrual, uploaded_at FROM orders WHERE order_id = $1`
-	queryGetOrders = `SELECT order_id, status, accrual, uploaded_at FROM orders WHERE user_login = $1`
+		    SET (status, accrual, uploaded_at) = (EXCLUDED.status, EXCLUDED.accrual, EXCLUDED.uploaded_at)`
+	queryGetOrder  = `SELECT order_id, login, status, accrual, uploaded_at FROM orders WHERE order_id = $1`
+	queryGetOrders = `SELECT order_id, status, accrual, uploaded_at FROM orders WHERE login = $1`
 
-	querySaveWithdrawn = `INSERT INTO orders_withdraws (order_id, user_login, value, processed_at) VALUES ($1, $2, $3, $4)
+	querySaveWithdrawn = `INSERT INTO orders_withdraws (order_id, login, value, processed_at) VALUES ($1, $2, $3, $4)
 		ON CONFLICT (order_id) DO NOTHING`
-	queryGetWithdrawals = `SELECT order_id, user_login, value, processed_at FROM orders_withdraws WHERE user_login = $1`
+	queryGetWithdrawals = `SELECT order_id, login, value, processed_at FROM orders_withdraws WHERE login = $1`
 )
 
 type pgRep struct {
@@ -107,27 +104,22 @@ func (p *pgRep) SaveUser(user entity.User) error {
 }
 
 func (p *pgRep) GetUser(login string) (entity.User, error) {
-	var users []entity.User
+	var user entity.User
 
-	err := p.db.SelectContext(
+	err := p.db.QueryRowContext(
 		p.ctx,
-		&users,
 		queryGetUser,
 		login,
-	)
+	).Scan(&user)
 	if err != nil {
 		return entity.User{}, fmt.Errorf("error to get users: %w, %s", err, login)
 	}
 
-	if len(users) == 0 {
-		return entity.User{}, fmt.Errorf("unknown user: %s", login)
-	}
-
-	return users[0], nil
+	return user, nil
 }
 
 func (p *pgRep) SaveOrder(order entity.Order) error {
-	_, err := p.db.ExecContext(p.ctx, querySaveOrder,
+	res, err := p.db.ExecContext(p.ctx, querySaveOrder,
 		order.OrderID,
 		order.UserLogin,
 		order.Status,
@@ -136,6 +128,14 @@ func (p *pgRep) SaveOrder(order entity.Order) error {
 	)
 	if err != nil {
 		return fmt.Errorf("error to save order: %w, %+v", err, order)
+	}
+
+	rows, err := res.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("error to get rows after save order: %w, %+v", err, order)
+	}
+	if rows <= 0 {
+		return fmt.Errorf("rows affected %v <= 0, after save order: %+v", rows, order)
 	}
 
 	return nil
@@ -177,12 +177,19 @@ func (p *pgRep) GetOrders(login string) ([]entity.Orders, error) {
 }
 
 func (p *pgRep) UpdateUser(user entity.User) error {
-	_, err := p.db.ExecContext(p.ctx, queryUpdateUser,
+	res, err := p.db.ExecContext(p.ctx, queryUpdateUser,
 		user.Login,
-		user.Password,
 		user.Current,
 		user.Withdrawn,
 	)
+
+	rows, err := res.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("error to get rows after update user: %w, %+v", err, user)
+	}
+	if rows <= 0 {
+		return fmt.Errorf("rows affected %v <= 0, after update user: %+v", rows, user)
+	}
 
 	if err != nil {
 		return fmt.Errorf("error to update user: %w, %+v", err, user)
@@ -196,7 +203,7 @@ func (p *pgRep) SupplementBalance(order entity.Order) error {
 		return nil
 	}
 
-	_, err := p.db.ExecContext(p.ctx, querySupplementUser,
+	res, err := p.db.ExecContext(p.ctx, querySupplementUser,
 		order.UserLogin,
 		order.Accrual,
 	)
@@ -204,19 +211,34 @@ func (p *pgRep) SupplementBalance(order entity.Order) error {
 		return fmt.Errorf("error to supplement balance: %w, %+v", err, order)
 	}
 
+	rows, err := res.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("error to get rows after supplement balance: %w, %+v", err, order)
+	}
+	if rows <= 0 {
+		return fmt.Errorf("rows affected %v <= 0, after supplement balance: %+v", rows, order)
+	}
+
 	return nil
 }
 
 func (p *pgRep) SaveWithdrawn(withdrawn entity.OrderWithdraw) error {
-	_, err := p.db.ExecContext(p.ctx, querySaveWithdrawn,
+	res, err := p.db.ExecContext(p.ctx, querySaveWithdrawn,
 		withdrawn.OrderID,
 		withdrawn.UserLogin,
 		withdrawn.Value,
 		withdrawn.ProcessedAt,
 	)
-
 	if err != nil {
 		return fmt.Errorf("error to save withdrawn: %w, %+v", err, withdrawn)
+	}
+
+	rows, err := res.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("error to get rows after save withdrawn: %w, %+v", err, withdrawn)
+	}
+	if rows <= 0 {
+		return fmt.Errorf("rows affected %v <= 0, after save withdrawn: %+v", rows, withdrawn)
 	}
 
 	return nil
