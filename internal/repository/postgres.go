@@ -110,7 +110,7 @@ func (p *pgRep) GetUser(login string) (entity.User, error) {
 		p.ctx,
 		queryGetUser,
 		login,
-	).Scan(&user)
+	).Scan(&user.Login, &user.Password, &user.Current, &user.Withdrawn)
 	if err != nil {
 		return entity.User{}, fmt.Errorf("error to get users: %w, %s", err, login)
 	}
