@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"log"
 	"time"
 
 	"github.com/IgorAleksandroff/gophermart/internal/config"
@@ -54,6 +55,7 @@ func (u *updater) Run() {
 	for {
 		<-ticker.C
 
+		log.Println("worker: start")
 		err := u.statuses.UpdateStatus(u.ctx)
 		if err != nil && !errors.Is(err, sql.ErrNoRows) {
 			u.l.Warn("can't update metrics, %s", err.Error())

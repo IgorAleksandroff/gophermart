@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"fmt"
+	"log"
 	"sync"
 
 	"github.com/jmoiron/sqlx"
@@ -266,6 +267,8 @@ func (p *pgRep) GetWithdrawals(ctx context.Context, login string) ([]entity.Orde
 }
 
 func (p *pgRep) GetOrderForUpdate(ctx context.Context) (*entity.Order, error) {
+	log.Println("worker: get order")
+
 	var order entity.Order
 
 	err := p.db.QueryRowContext(
@@ -276,7 +279,7 @@ func (p *pgRep) GetOrderForUpdate(ctx context.Context) (*entity.Order, error) {
 	if err != nil {
 		return &entity.Order{}, fmt.Errorf("error to get order for update: %w", err)
 	}
-	p.l.Info("заказ для обновления: %+v", order)
+	log.Println(fmt.Printf("order for update: %+v", order))
 
 	return &order, nil
 }
