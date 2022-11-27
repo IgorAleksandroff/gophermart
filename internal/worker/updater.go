@@ -2,6 +2,8 @@ package worker
 
 import (
 	"context"
+	"database/sql"
+	"errors"
 	"time"
 
 	"github.com/IgorAleksandroff/gophermart/internal/config"
@@ -53,8 +55,8 @@ func (u *updater) Run() {
 		<-ticker.C
 
 		err := u.statuses.UpdateStatus(u.ctx)
-		if err != nil {
-			u.l.Warn("can't save metrics, %s", err.Error())
+		if err != nil && !errors.Is(err, sql.ErrNoRows) {
+			u.l.Warn("can't update metrics, %s", err.Error())
 		}
 	}
 }

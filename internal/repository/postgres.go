@@ -272,7 +272,7 @@ func (p *pgRep) GetOrderForUpdate(ctx context.Context) (*entity.Order, error) {
 		completedStatus,
 	).Scan(&order.OrderID, &order.Status)
 	if err != nil {
-		return &entity.Order{}, fmt.Errorf("error to get users for update: %w", err)
+		return &entity.Order{}, fmt.Errorf("error to get order for update: %w", err)
 	}
 	p.l.Info("заказ для обновления: %+v", order)
 

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 
 	"github.com/IgorAleksandroff/gophermart/internal/entity"
 )
@@ -81,6 +82,7 @@ func (o *ordersUsecase) SaveOrder(ctx context.Context, order entity.Order) error
 	existedOrder, _ := o.repo.GetOrder(ctx, order.OrderID)
 	if existedOrder != nil {
 		if existedOrder.UserLogin != order.UserLogin {
+			log.Println(fmt.Printf("debug, existedOrder.UserLogin = %v, order.UserLogin = %v", existedOrder.UserLogin, order.UserLogin))
 			return ErrExistOrderByAnotherUser
 		}
 
