@@ -7,18 +7,25 @@ import (
 
 	"github.com/IgorAleksandroff/gophermart/internal/app"
 	"github.com/IgorAleksandroff/gophermart/internal/config"
+	"github.com/IgorAleksandroff/gophermart/internal/worker"
 )
 
 func main() {
 	ctx, closeCtx := context.WithTimeout(context.Background(), 5*time.Second)
 	defer closeCtx()
 
-	app, err := app.NewApp(ctx, config.GetConfig())
-	defer app.Cancel()
+	cfg := config.GetConfig()
 
+	app, err := app.NewApp(ctx, cfg)
 	if err != nil {
 		log.Fatalf("Create app error: %s", err)
 	}
+	defer app.Cancel()
+
+	w := worker.NewUpdater(ctx, cfg)
+
+	// start worker for update statuses of orders
+	go w.Run()
 
 	app.Run()
 }

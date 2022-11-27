@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"fmt"
+	"sync"
 
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
@@ -10,6 +11,8 @@ import (
 	"github.com/IgorAleksandroff/gophermart/internal/entity"
 	"github.com/IgorAleksandroff/gophermart/pkg/logger"
 )
+
+const completedStatus = "PROCESSED"
 
 const (
 	queryCreateTables = `CREATE TABLE IF NOT EXISTS users (
@@ -47,8 +50,9 @@ const (
 	querySaveOrder = `INSERT INTO orders (order_id, login, status, accrual, uploaded_at) VALUES ($1, $2, $3, $4, $5)
 		ON CONFLICT (order_id) DO UPDATE
 		    SET (status, accrual, uploaded_at) = (EXCLUDED.status, EXCLUDED.accrual, EXCLUDED.uploaded_at)`
-	queryGetOrder  = `SELECT order_id, login, status, accrual, uploaded_at FROM orders WHERE order_id = $1`
-	queryGetOrders = `SELECT order_id, status, accrual, uploaded_at FROM orders WHERE login = $1`
+	queryGetOrder          = `SELECT order_id, login, status, accrual, uploaded_at FROM orders WHERE order_id = $1`
+	queryGetOrders         = `SELECT order_id, status, accrual, uploaded_at FROM orders WHERE login = $1`
+	queryGetOrderForUpdate = `SELECT order_id, status FROM orders WHERE status <> $1 ORDER BY uploaded_at`
 
 	querySaveWithdrawn = `INSERT INTO orders_withdraws (order_id, login, value, processed_at) VALUES ($1, $2, $3, $4)
 		ON CONFLICT (order_id) DO NOTHING`
@@ -60,18 +64,23 @@ type pgRep struct {
 	l  *logger.Logger
 }
 
+var instance pgRep
+var once sync.Once
+
 func NewPGRepository(ctx context.Context, log *logger.Logger, addressDB string) *pgRep {
-	db, err := sqlx.Connect("postgres", addressDB)
-	if err != nil {
-		log.Fatal(fmt.Errorf("app - New - postgres.New: %w", err))
-	}
+	once.Do(func() {
+		db, err := sqlx.Connect("postgres", addressDB)
+		if err != nil {
+			log.Fatal(fmt.Errorf("app - New - postgres.New: %w", err))
+		}
 
-	repositoryPG := pgRep{db: db, l: log}
-	if err = repositoryPG.init(ctx); err != nil {
-		log.Fatal(fmt.Errorf("app - New - postgres.`Init`: %w", err))
-	}
+		instance = pgRep{db: db, l: log}
+		if err = instance.init(ctx); err != nil {
+			log.Fatal(fmt.Errorf("app - New - postgres.`Init`: %w", err))
+		}
+	})
 
-	return &repositoryPG
+	return &instance
 }
 
 func (p *pgRep) init(ctx context.Context) error {
@@ -111,7 +120,7 @@ func (p *pgRep) GetUser(ctx context.Context, login string) (entity.User, error) 
 		login,
 	).Scan(&user.Login, &user.Password, &user.Current, &user.Withdrawn)
 	if err != nil {
-		return entity.User{}, fmt.Errorf("error to get users: %w, %s", err, login)
+		return entity.User{}, fmt.Errorf("error to get user: %w, %s", err, login)
 	}
 
 	return user, nil
@@ -141,22 +150,18 @@ func (p *pgRep) SaveOrder(ctx context.Context, order entity.Order) error {
 }
 
 func (p *pgRep) GetOrder(ctx context.Context, orderID string) (*entity.Order, error) {
-	var orders []entity.Order
+	var order entity.Order
 
-	err := p.db.SelectContext(
+	err := p.db.QueryRowContext(
 		ctx,
-		&orders,
 		queryGetOrder,
 		orderID,
-	)
+	).Scan(&order.OrderID, &order.UserLogin, &order.Status, &order.Accrual, &order.UploadedAt)
 	if err != nil {
-		return nil, err
-	}
-	if len(orders) == 0 {
-		return nil, fmt.Errorf("unknown odrer: %s", orderID)
+		return &entity.Order{}, fmt.Errorf("error to get order: %w, %s", err, orderID)
 	}
 
-	return &orders[0], nil
+	return &order, nil
 }
 
 func (p *pgRep) GetOrders(ctx context.Context, login string) ([]entity.Orders, error) {
@@ -256,6 +261,22 @@ func (p *pgRep) GetWithdrawals(ctx context.Context, login string) ([]entity.Orde
 	}
 
 	return result, nil
+}
+
+func (p *pgRep) GetOrderForUpdate(ctx context.Context) (*entity.Order, error) {
+	var order entity.Order
+
+	err := p.db.QueryRowContext(
+		ctx,
+		queryGetOrderForUpdate,
+		completedStatus,
+	).Scan(&order.OrderID, &order.Status)
+	if err != nil {
+		return &entity.Order{}, fmt.Errorf("error to get users for update: %w", err)
+	}
+	p.l.Warn("заказ для обновления: ", order)
+
+	return &order, nil
 }
 
 func (p *pgRep) Close() {

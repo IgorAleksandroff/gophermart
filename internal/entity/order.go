@@ -28,6 +28,12 @@ type Accrual struct {
 	Accrual *float64 `json:"accrual,omitempty"`
 }
 
+var CompletedStatus = []string{
+	"NEW",
+	"PROCESSING",
+	"INVALID",
+}
+
 // Valid check number is valid or not based on Luhn algorithm
 func Valid(number int) bool {
 	return (number%10+checksum(number/10))%10 == 0

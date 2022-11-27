@@ -152,4 +152,27 @@ func (m *memoRep) GetWithdrawals(ctx context.Context, login string) ([]entity.Or
 	return result, nil
 }
 
+func (m *memoRep) GetOrderForUpdate(ctx context.Context) (*entity.Order, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	var oldestOrder *entity.Order
+	for _, o := range m.orders {
+		if o.Status != completedStatus {
+			continue
+		}
+
+		if oldestOrder == nil {
+			oldestOrder = &o
+			continue
+		}
+
+		if oldestOrder.UploadedAt < o.UploadedAt {
+			oldestOrder = &o
+		}
+	}
+
+	return oldestOrder, nil
+}
+
 func (m *memoRep) Close() {}
