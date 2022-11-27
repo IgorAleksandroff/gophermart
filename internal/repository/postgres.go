@@ -274,7 +274,7 @@ func (p *pgRep) GetOrderForUpdate(ctx context.Context) (*entity.Order, error) {
 	if err != nil {
 		return &entity.Order{}, fmt.Errorf("error to get users for update: %w", err)
 	}
-	p.l.Warn("заказ для обновления: %s", order)
+	p.l.Info("заказ для обновления: %s", order)
 
 	return &order, nil
 }
