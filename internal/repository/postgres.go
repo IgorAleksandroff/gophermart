@@ -3,7 +3,6 @@ package repository
 import (
 	"context"
 	"fmt"
-	"log"
 	"sync"
 
 	"github.com/jmoiron/sqlx"
@@ -147,7 +146,7 @@ func (p *pgRep) SaveOrder(ctx context.Context, order entity.Order) error {
 		return fmt.Errorf("rows affected %v <= 0, after save order: %+v", rows, order)
 	}
 
-	log.Println(fmt.Printf("saved order: %+v", order))
+	p.l.Info("saved order: %+v", order)
 
 	return nil
 }
@@ -164,7 +163,7 @@ func (p *pgRep) GetOrder(ctx context.Context, orderID string) (*entity.Order, er
 		return &entity.Order{}, fmt.Errorf("error to get order: %w, %s", err, orderID)
 	}
 
-	p.l.Info("debug, order for save = %+v", order)
+	p.l.Info("order for save = %+v", order)
 
 	return &order, nil
 }
@@ -269,8 +268,6 @@ func (p *pgRep) GetWithdrawals(ctx context.Context, login string) ([]entity.Orde
 }
 
 func (p *pgRep) GetOrderForUpdate(ctx context.Context) (*entity.Order, error) {
-	log.Println("worker: get order")
-
 	var order entity.Order
 
 	err := p.db.QueryRowContext(
@@ -281,7 +278,7 @@ func (p *pgRep) GetOrderForUpdate(ctx context.Context) (*entity.Order, error) {
 	if err != nil {
 		return &entity.Order{}, fmt.Errorf("error to get order for update: %w", err)
 	}
-	log.Println(fmt.Printf("order for update: %+v", order))
+	p.l.Info("order for update: %+v", order)
 
 	return &order, nil
 }
