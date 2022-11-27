@@ -22,7 +22,7 @@ func main() {
 	}
 	defer app.Cancel()
 
-	w := worker.NewUpdater(ctx, cfg)
+	w := worker.NewUpdater(context.Background(), cfg)
 
 	// start worker for update statuses of orders
 	go w.Run()

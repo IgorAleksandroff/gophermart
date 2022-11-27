@@ -52,7 +52,7 @@ const (
 		    SET (status, accrual, uploaded_at) = (EXCLUDED.status, EXCLUDED.accrual, EXCLUDED.uploaded_at)`
 	queryGetOrder          = `SELECT order_id, login, status, accrual, uploaded_at FROM orders WHERE order_id = $1`
 	queryGetOrders         = `SELECT order_id, status, accrual, uploaded_at FROM orders WHERE login = $1`
-	queryGetOrderForUpdate = `SELECT order_id, status FROM orders WHERE status <> $1 ORDER BY uploaded_at`
+	queryGetOrderForUpdate = `SELECT order_id, login, status, accrual, uploaded_at FROM orders WHERE status <> $1 ORDER BY uploaded_at`
 
 	querySaveWithdrawn = `INSERT INTO orders_withdraws (order_id, login, value, processed_at) VALUES ($1, $2, $3, $4)
 		ON CONFLICT (order_id) DO NOTHING`
@@ -160,6 +160,8 @@ func (p *pgRep) GetOrder(ctx context.Context, orderID string) (*entity.Order, er
 	if err != nil {
 		return &entity.Order{}, fmt.Errorf("error to get order: %w, %s", err, orderID)
 	}
+
+	p.l.Info("debug, order for save = %+v", order)
 
 	return &order, nil
 }
@@ -270,7 +272,7 @@ func (p *pgRep) GetOrderForUpdate(ctx context.Context) (*entity.Order, error) {
 		ctx,
 		queryGetOrderForUpdate,
 		completedStatus,
-	).Scan(&order.OrderID, &order.Status)
+	).Scan(&order.OrderID, &order.UserLogin, &order.Status, &order.Accrual, &order.UploadedAt)
 	if err != nil {
 		return &entity.Order{}, fmt.Errorf("error to get order for update: %w", err)
 	}
