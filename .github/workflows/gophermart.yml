@@ -5,14 +5,14 @@ on:
   pull_request:
   push:
     branches:
-      - dev
+      - main
       - master
 
 jobs:
 
   build:
     runs-on: ubuntu-latest
-    container: golang:1.17
+    container: golang:1.19
 
     services:
       postgres:

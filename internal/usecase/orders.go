@@ -78,8 +78,8 @@ func (o *ordersUsecase) SaveOrder(ctx context.Context, order entity.Order) error
 	}
 
 	var existError error
-	existedOrder, _ := o.repo.GetOrder(ctx, order.OrderID)
-	if existedOrder != nil {
+	existedOrder, err := o.repo.GetOrder(ctx, order.OrderID)
+	if existedOrder != nil && err == nil {
 		if existedOrder.UserLogin != order.UserLogin {
 			return ErrExistOrderByAnotherUser
 		}
