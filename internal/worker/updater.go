@@ -14,10 +14,10 @@ import (
 	"github.com/IgorAleksandroff/gophermart/pkg/logger"
 )
 
-const updatePeriodSeconds = 1
+const updatePeriod = 100 * time.Millisecond
 
 type updater struct {
-	period   int64
+	period   time.Duration
 	statuses usecase.UpdaterStatuses
 	ctx      context.Context
 	l        *logger.Logger
@@ -41,7 +41,7 @@ func NewUpdater(ctx context.Context, cfg *config.Config) *updater {
 	statusesUsecase := usecase.NewStatuses(ordersUsecase, statusesRepo)
 
 	return &updater{
-		period:   updatePeriodSeconds,
+		period:   updatePeriod,
 		statuses: statusesUsecase,
 		ctx:      ctx,
 		l:        l,
@@ -49,7 +49,7 @@ func NewUpdater(ctx context.Context, cfg *config.Config) *updater {
 }
 
 func (u *updater) Run() {
-	ticker := time.NewTicker(time.Second)
+	ticker := time.NewTicker(u.period)
 	defer ticker.Stop()
 
 	for {
