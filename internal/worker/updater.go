@@ -54,7 +54,7 @@ func (u *updater) Run() {
 
 		err := u.statuses.UpdateStatus(u.ctx)
 		if err != nil {
-			u.l.Warn("can't save metrics, %w", err)
+			u.l.Warn("can't save metrics, %s", err.Error())
 		}
 	}
 }
