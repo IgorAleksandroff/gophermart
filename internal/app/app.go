@@ -1,6 +1,7 @@
 package app
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"os"
@@ -27,17 +28,17 @@ type app struct {
 
 type cancelFunc func()
 
-func NewApp(cfg *config.Config) (*app, error) {
+func NewApp(ctx context.Context, cfg *config.Config) (*app, error) {
 	l := logger.New(cfg.App.LogLevel)
 	r := chi.NewRouter()
 
 	var repo usecase.OrdersRepository
 	var authRepo usecase.UserRepository
 	if cfg.App.DataBaseURI != "" {
-		pgRepo := repository.NewPGRepository(l, cfg.App.DataBaseURI)
+		pgRepo := repository.NewPGRepository(ctx, l, cfg.App.DataBaseURI)
 		repo, authRepo = pgRepo, pgRepo
 	} else {
-		inMemoRepo := repository.NewMemoRepository(l)
+		inMemoRepo := repository.NewMemoRepository(ctx, l)
 		repo, authRepo = inMemoRepo, inMemoRepo
 	}
 

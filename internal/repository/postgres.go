@@ -56,35 +56,34 @@ const (
 )
 
 type pgRep struct {
-	ctx context.Context
-	db  *sqlx.DB
-	l   *logger.Logger
+	db *sqlx.DB
+	l  *logger.Logger
 }
 
-func NewPGRepository(log *logger.Logger, addressDB string) *pgRep {
+func NewPGRepository(ctx context.Context, log *logger.Logger, addressDB string) *pgRep {
 	db, err := sqlx.Connect("postgres", addressDB)
 	if err != nil {
 		log.Fatal(fmt.Errorf("app - New - postgres.New: %w", err))
 	}
 
-	repositoryPG := pgRep{ctx: context.Background(), db: db, l: log}
-	if err = repositoryPG.init(); err != nil {
+	repositoryPG := pgRep{db: db, l: log}
+	if err = repositoryPG.init(ctx); err != nil {
 		log.Fatal(fmt.Errorf("app - New - postgres.`Init`: %w", err))
 	}
 
 	return &repositoryPG
 }
 
-func (p *pgRep) init() error {
-	_, err := p.db.ExecContext(p.ctx, queryCreateTables)
+func (p *pgRep) init(ctx context.Context) error {
+	_, err := p.db.ExecContext(ctx, queryCreateTables)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (p *pgRep) SaveUser(user entity.User) error {
-	res, err := p.db.ExecContext(p.ctx, querySaveUser,
+func (p *pgRep) SaveUser(ctx context.Context, user entity.User) error {
+	res, err := p.db.ExecContext(ctx, querySaveUser,
 		user.Login,
 		user.Password,
 	)
@@ -103,11 +102,11 @@ func (p *pgRep) SaveUser(user entity.User) error {
 	return nil
 }
 
-func (p *pgRep) GetUser(login string) (entity.User, error) {
+func (p *pgRep) GetUser(ctx context.Context, login string) (entity.User, error) {
 	var user entity.User
 
 	err := p.db.QueryRowContext(
-		p.ctx,
+		ctx,
 		queryGetUser,
 		login,
 	).Scan(&user.Login, &user.Password, &user.Current, &user.Withdrawn)
@@ -118,8 +117,8 @@ func (p *pgRep) GetUser(login string) (entity.User, error) {
 	return user, nil
 }
 
-func (p *pgRep) SaveOrder(order entity.Order) error {
-	res, err := p.db.ExecContext(p.ctx, querySaveOrder,
+func (p *pgRep) SaveOrder(ctx context.Context, order entity.Order) error {
+	res, err := p.db.ExecContext(ctx, querySaveOrder,
 		order.OrderID,
 		order.UserLogin,
 		order.Status,
@@ -141,11 +140,11 @@ func (p *pgRep) SaveOrder(order entity.Order) error {
 	return nil
 }
 
-func (p *pgRep) GetOrder(orderID string) (*entity.Order, error) {
+func (p *pgRep) GetOrder(ctx context.Context, orderID string) (*entity.Order, error) {
 	var orders []entity.Order
 
 	err := p.db.SelectContext(
-		p.ctx,
+		ctx,
 		&orders,
 		queryGetOrder,
 		orderID,
@@ -160,11 +159,11 @@ func (p *pgRep) GetOrder(orderID string) (*entity.Order, error) {
 	return &orders[0], nil
 }
 
-func (p *pgRep) GetOrders(login string) ([]entity.Orders, error) {
+func (p *pgRep) GetOrders(ctx context.Context, login string) ([]entity.Orders, error) {
 	var result []entity.Orders
 
 	err := p.db.SelectContext(
-		p.ctx,
+		ctx,
 		&result,
 		queryGetOrders,
 		login,
@@ -176,8 +175,8 @@ func (p *pgRep) GetOrders(login string) ([]entity.Orders, error) {
 	return result, nil
 }
 
-func (p *pgRep) UpdateUser(user entity.User) error {
-	res, err := p.db.ExecContext(p.ctx, queryUpdateUser,
+func (p *pgRep) UpdateUser(ctx context.Context, user entity.User) error {
+	res, err := p.db.ExecContext(ctx, queryUpdateUser,
 		user.Login,
 		user.Current,
 		user.Withdrawn,
@@ -197,12 +196,12 @@ func (p *pgRep) UpdateUser(user entity.User) error {
 	return nil
 }
 
-func (p *pgRep) SupplementBalance(order entity.Order) error {
+func (p *pgRep) SupplementBalance(ctx context.Context, order entity.Order) error {
 	if order.Accrual == 0 {
 		return nil
 	}
 
-	res, err := p.db.ExecContext(p.ctx, querySupplementUser,
+	res, err := p.db.ExecContext(ctx, querySupplementUser,
 		order.UserLogin,
 		order.Accrual,
 	)
@@ -221,8 +220,8 @@ func (p *pgRep) SupplementBalance(order entity.Order) error {
 	return nil
 }
 
-func (p *pgRep) SaveWithdrawn(withdrawn entity.OrderWithdraw) error {
-	res, err := p.db.ExecContext(p.ctx, querySaveWithdrawn,
+func (p *pgRep) SaveWithdrawn(ctx context.Context, withdrawn entity.OrderWithdraw) error {
+	res, err := p.db.ExecContext(ctx, querySaveWithdrawn,
 		withdrawn.OrderID,
 		withdrawn.UserLogin,
 		withdrawn.Value,
@@ -243,11 +242,11 @@ func (p *pgRep) SaveWithdrawn(withdrawn entity.OrderWithdraw) error {
 	return nil
 }
 
-func (p *pgRep) GetWithdrawals(login string) ([]entity.OrderWithdraw, error) {
+func (p *pgRep) GetWithdrawals(ctx context.Context, login string) ([]entity.OrderWithdraw, error) {
 	var result []entity.OrderWithdraw
 
 	err := p.db.SelectContext(
-		p.ctx,
+		ctx,
 		&result,
 		queryGetWithdrawals,
 		login,

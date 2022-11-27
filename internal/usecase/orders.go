@@ -1,6 +1,7 @@
 package usecase
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -24,22 +25,22 @@ type ordersUsecase struct {
 }
 
 type Orders interface {
-	GetUser(login string) (entity.User, error)
-	SaveOrder(order entity.Order) error
-	GetOrders(login string) ([]entity.Orders, error)
-	SaveWithdrawn(order entity.OrderWithdraw) error
-	GetWithdrawals(login string) ([]entity.OrderWithdraw, error)
+	GetUser(ctx context.Context, login string) (entity.User, error)
+	SaveOrder(ctx context.Context, order entity.Order) error
+	GetOrders(ctx context.Context, login string) ([]entity.Orders, error)
+	SaveWithdrawn(ctx context.Context, order entity.OrderWithdraw) error
+	GetWithdrawals(ctx context.Context, login string) ([]entity.OrderWithdraw, error)
 }
 
 type OrdersRepository interface {
-	GetUser(login string) (entity.User, error)
-	SaveOrder(order entity.Order) error
-	GetOrder(orderID string) (*entity.Order, error)
-	GetOrders(login string) ([]entity.Orders, error)
-	UpdateUser(user entity.User) error
-	SupplementBalance(order entity.Order) error
-	SaveWithdrawn(order entity.OrderWithdraw) error
-	GetWithdrawals(login string) ([]entity.OrderWithdraw, error)
+	GetUser(ctx context.Context, login string) (entity.User, error)
+	SaveOrder(ctx context.Context, order entity.Order) error
+	GetOrder(ctx context.Context, orderID string) (*entity.Order, error)
+	GetOrders(ctx context.Context, login string) ([]entity.Orders, error)
+	UpdateUser(ctx context.Context, user entity.User) error
+	SupplementBalance(ctx context.Context, order entity.Order) error
+	SaveWithdrawn(ctx context.Context, order entity.OrderWithdraw) error
+	GetWithdrawals(ctx context.Context, login string) ([]entity.OrderWithdraw, error)
 	Close()
 }
 
@@ -51,11 +52,11 @@ func NewOrders(r OrdersRepository, c apiClient) *ordersUsecase {
 	return &ordersUsecase{repo: r, accrualClient: c}
 }
 
-func (o *ordersUsecase) GetUser(login string) (entity.User, error) {
-	return o.repo.GetUser(login)
+func (o *ordersUsecase) GetUser(ctx context.Context, login string) (entity.User, error) {
+	return o.repo.GetUser(ctx, login)
 }
 
-func (o *ordersUsecase) SaveOrder(order entity.Order) error {
+func (o *ordersUsecase) SaveOrder(ctx context.Context, order entity.Order) error {
 	var accrual entity.Accrual
 	out, err := o.accrualClient.DoGet(accrualEndpoint + order.OrderID)
 	if err != nil {
@@ -77,7 +78,7 @@ func (o *ordersUsecase) SaveOrder(order entity.Order) error {
 	}
 
 	var existError error
-	existedOrder, _ := o.repo.GetOrder(order.OrderID)
+	existedOrder, _ := o.repo.GetOrder(ctx, order.OrderID)
 	if existedOrder != nil {
 		if existedOrder.UserLogin != order.UserLogin {
 			return ErrExistOrderByAnotherUser
@@ -86,12 +87,12 @@ func (o *ordersUsecase) SaveOrder(order entity.Order) error {
 		existError = ErrExistOrderByThisUser
 	}
 
-	err = o.repo.SaveOrder(order)
+	err = o.repo.SaveOrder(ctx, order)
 	if err != nil {
 		return err
 	}
 
-	err = o.repo.SupplementBalance(order)
+	err = o.repo.SupplementBalance(ctx, order)
 	if err != nil {
 		return err
 	}
@@ -99,12 +100,12 @@ func (o *ordersUsecase) SaveOrder(order entity.Order) error {
 	return existError
 }
 
-func (o *ordersUsecase) GetOrders(login string) ([]entity.Orders, error) {
-	return o.repo.GetOrders(login)
+func (o *ordersUsecase) GetOrders(ctx context.Context, login string) ([]entity.Orders, error) {
+	return o.repo.GetOrders(ctx, login)
 }
 
-func (o *ordersUsecase) SaveWithdrawn(withdrawn entity.OrderWithdraw) error {
-	user, err := o.repo.GetUser(withdrawn.UserLogin)
+func (o *ordersUsecase) SaveWithdrawn(ctx context.Context, withdrawn entity.OrderWithdraw) error {
+	user, err := o.repo.GetUser(ctx, withdrawn.UserLogin)
 	if err != nil {
 		return err
 	}
@@ -115,18 +116,18 @@ func (o *ordersUsecase) SaveWithdrawn(withdrawn entity.OrderWithdraw) error {
 	user.Current = user.Current - withdrawn.Value
 	user.Withdrawn = user.Withdrawn + withdrawn.Value
 
-	err = o.repo.UpdateUser(user)
+	err = o.repo.UpdateUser(ctx, user)
 	if err != nil {
 		return err
 	}
 
-	if err = o.repo.SaveWithdrawn(withdrawn); err != nil {
+	if err = o.repo.SaveWithdrawn(ctx, withdrawn); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (o *ordersUsecase) GetWithdrawals(login string) ([]entity.OrderWithdraw, error) {
-	return o.repo.GetWithdrawals(login)
+func (o *ordersUsecase) GetWithdrawals(ctx context.Context, login string) ([]entity.OrderWithdraw, error) {
+	return o.repo.GetWithdrawals(ctx, login)
 }

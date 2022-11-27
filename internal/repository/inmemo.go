@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"context"
 	"errors"
 	"sync"
 
@@ -16,7 +17,7 @@ type memoRep struct {
 	l        *logger.Logger
 }
 
-func NewMemoRepository(log *logger.Logger) *memoRep {
+func NewMemoRepository(ctx context.Context, log *logger.Logger) *memoRep {
 	o := make(map[string]entity.Order)
 	u := make(map[string]entity.User)
 	w := make(map[string]entity.OrderWithdraw)
@@ -24,7 +25,7 @@ func NewMemoRepository(log *logger.Logger) *memoRep {
 	return &memoRep{orders: o, users: u, withdraw: w, mu: &sync.Mutex{}, l: log}
 }
 
-func (m *memoRep) SaveUser(user entity.User) error {
+func (m *memoRep) SaveUser(ctx context.Context, user entity.User) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -38,7 +39,7 @@ func (m *memoRep) SaveUser(user entity.User) error {
 	return nil
 }
 
-func (m *memoRep) GetUser(login string) (entity.User, error) {
+func (m *memoRep) GetUser(ctx context.Context, login string) (entity.User, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -50,7 +51,7 @@ func (m *memoRep) GetUser(login string) (entity.User, error) {
 	return userSaved, nil
 }
 
-func (m *memoRep) GetOrder(orderID string) (*entity.Order, error) {
+func (m *memoRep) GetOrder(ctx context.Context, orderID string) (*entity.Order, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -62,7 +63,7 @@ func (m *memoRep) GetOrder(orderID string) (*entity.Order, error) {
 	return &existedOrder, nil
 }
 
-func (m *memoRep) SaveOrder(order entity.Order) error {
+func (m *memoRep) SaveOrder(ctx context.Context, order entity.Order) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -71,7 +72,7 @@ func (m *memoRep) SaveOrder(order entity.Order) error {
 	return nil
 }
 
-func (m *memoRep) GetOrders(login string) ([]entity.Orders, error) {
+func (m *memoRep) GetOrders(ctx context.Context, login string) ([]entity.Orders, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -90,7 +91,7 @@ func (m *memoRep) GetOrders(login string) ([]entity.Orders, error) {
 	return result, nil
 }
 
-func (m *memoRep) UpdateUser(user entity.User) error {
+func (m *memoRep) UpdateUser(ctx context.Context, user entity.User) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -104,7 +105,7 @@ func (m *memoRep) UpdateUser(user entity.User) error {
 	return nil
 }
 
-func (m *memoRep) SupplementBalance(order entity.Order) error {
+func (m *memoRep) SupplementBalance(ctx context.Context, order entity.Order) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -123,7 +124,7 @@ func (m *memoRep) SupplementBalance(order entity.Order) error {
 	return nil
 }
 
-func (m *memoRep) SaveWithdrawn(withdrawn entity.OrderWithdraw) error {
+func (m *memoRep) SaveWithdrawn(ctx context.Context, withdrawn entity.OrderWithdraw) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -137,7 +138,7 @@ func (m *memoRep) SaveWithdrawn(withdrawn entity.OrderWithdraw) error {
 	return nil
 }
 
-func (m *memoRep) GetWithdrawals(login string) ([]entity.OrderWithdraw, error) {
+func (m *memoRep) GetWithdrawals(ctx context.Context, login string) ([]entity.OrderWithdraw, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
