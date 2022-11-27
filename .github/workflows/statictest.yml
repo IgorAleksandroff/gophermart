@@ -6,13 +6,13 @@ on:
   push:
     branches:
       - master
-      - dev
+      - main
 
 jobs:
 
   statictest:
     runs-on: ubuntu-latest
-    container: golang:1.17
+    container: golang:1.19
     steps:
       - name: Checkout code
         uses: actions/checkout@v2

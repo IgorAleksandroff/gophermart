@@ -53,7 +53,7 @@ const (
 		    SET (status, accrual, uploaded_at) = (EXCLUDED.status, EXCLUDED.accrual, EXCLUDED.uploaded_at)`
 	queryGetOrder          = `SELECT order_id, login, status, accrual, uploaded_at FROM orders WHERE order_id = $1`
 	queryGetOrders         = `SELECT order_id, status, accrual, uploaded_at FROM orders WHERE login = $1`
-	queryGetOrderForUpdate = `SELECT order_id, login, status, accrual, uploaded_at FROM orders WHERE status <> $1 ORDER BY uploaded_at`
+	queryGetOrderForUpdate = `SELECT order_id, login, status, accrual, uploaded_at FROM orders WHERE status != $1 ORDER BY uploaded_at`
 
 	querySaveWithdrawn = `INSERT INTO orders_withdraws (order_id, login, value, processed_at) VALUES ($1, $2, $3, $4)
 		ON CONFLICT (order_id) DO NOTHING`
@@ -146,6 +146,8 @@ func (p *pgRep) SaveOrder(ctx context.Context, order entity.Order) error {
 	if rows <= 0 {
 		return fmt.Errorf("rows affected %v <= 0, after save order: %+v", rows, order)
 	}
+
+	log.Println(fmt.Printf("saved order: %+v", order))
 
 	return nil
 }
