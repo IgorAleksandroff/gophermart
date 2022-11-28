@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"sync"
+	"time"
 
 	"github.com/IgorAleksandroff/gophermart/internal/entity"
 	"github.com/IgorAleksandroff/gophermart/pkg/logger"
@@ -64,6 +65,8 @@ func (m *memoRep) GetOrder(ctx context.Context, orderID string) (*entity.Order, 
 }
 
 func (m *memoRep) SaveOrder(ctx context.Context, order entity.Order) error {
+	order.UploadedAt = time.Now().Format(time.RFC3339)
+
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
