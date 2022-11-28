@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/IgorAleksandroff/gophermart/internal/entity"
 	"github.com/IgorAleksandroff/gophermart/internal/repository"
@@ -163,9 +162,8 @@ func (h *handler) HandlePostOrders(w http.ResponseWriter, r *http.Request) {
 	}
 
 	err = h.ordersUC.SaveOrder(ctx, entity.Order{
-		OrderID:    order,
-		UserLogin:  r.Header.Get(userCtx),
-		UploadedAt: time.Now().Format(time.RFC3339),
+		OrderID:   order,
+		UserLogin: r.Header.Get(userCtx),
 	})
 	if err != nil {
 		h.l.Warn(err.Error())

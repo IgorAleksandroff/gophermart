@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
@@ -132,7 +133,7 @@ func (p *pgRep) SaveOrder(ctx context.Context, order entity.Order) error {
 		order.UserLogin,
 		order.Status,
 		order.Accrual,
-		order.UploadedAt,
+		time.Now().Format(time.RFC3339),
 	)
 	if err != nil {
 		return fmt.Errorf("error to save order: %w, %+v", err, order)
