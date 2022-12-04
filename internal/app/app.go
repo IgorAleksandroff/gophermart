@@ -8,15 +8,14 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/IgorAleksandroff/gophermart/internal/webapi"
-	"github.com/go-chi/chi"
-
 	"github.com/IgorAleksandroff/gophermart/internal/config"
 	"github.com/IgorAleksandroff/gophermart/internal/hendler"
 	"github.com/IgorAleksandroff/gophermart/internal/repository"
 	"github.com/IgorAleksandroff/gophermart/internal/usecase"
+	"github.com/IgorAleksandroff/gophermart/internal/webapi"
 	"github.com/IgorAleksandroff/gophermart/pkg/httpserver"
 	"github.com/IgorAleksandroff/gophermart/pkg/logger"
+	"github.com/go-chi/chi"
 )
 
 type app struct {
@@ -31,6 +30,8 @@ type cancelFunc func()
 func NewApp(ctx context.Context, cfg *config.Config) (*app, error) {
 	l := logger.New(cfg.App.LogLevel)
 	r := chi.NewRouter()
+
+	l.Debug("start NewApp")
 
 	var repo usecase.OrdersRepository
 	var authRepo usecase.UserRepository

@@ -11,6 +11,8 @@ import (
 )
 
 func main() {
+	log.Println("debug: start main")
+
 	ctx, closeCtx := context.WithTimeout(context.Background(), 5*time.Second)
 	defer closeCtx()
 
