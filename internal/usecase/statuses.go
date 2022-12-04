@@ -36,5 +36,9 @@ func (s *statusesUsecase) UpdateStatus(ctx context.Context) error {
 		return fmt.Errorf("error to get order for update: %w", err)
 	}
 
+	if order == nil {
+		return fmt.Errorf("get empty order for update")
+	}
+
 	return s.orders.SaveOrder(ctx, *order)
 }
