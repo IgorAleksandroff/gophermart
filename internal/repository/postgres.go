@@ -3,7 +3,6 @@ package repository
 import (
 	"context"
 	"fmt"
-	"sync"
 	"time"
 
 	"github.com/jmoiron/sqlx"
@@ -16,17 +15,23 @@ import (
 const completedStatus = "PROCESSED"
 
 const (
-	queryCreateTables = `CREATE TABLE IF NOT EXISTS users (
-			id serial,
+	queryCreateTables = `	
+		CREATE TYPE order_status AS ENUM (
+			'NEW',
+			'PROCESSING',
+			'INVALID',
+			'PROCESSED'
+		);
+		CREATE TABLE IF NOT EXISTS users (
 			login VARCHAR(64) PRIMARY KEY,
-			password VARCHAR(128),
+			password VARCHAR(128) NOT NULL,
 			current DECIMAL(16, 4) NOT NULL DEFAULT 0,
 			withdrawn DECIMAL(16, 4) NOT NULL DEFAULT 0
 		);
 		CREATE TABLE IF NOT EXISTS orders (
 			order_id VARCHAR(64) PRIMARY KEY,
 			login VARCHAR(64) REFERENCES users(login),
-			status VARCHAR(32) NOT NULL,
+			status order_status,
 			accrual DECIMAL(16, 4) NOT NULL DEFAULT 0,
 			uploaded_at VARCHAR(32) NOT NULL
 		);
@@ -65,21 +70,18 @@ type pgRep struct {
 	l  *logger.Logger
 }
 
-var instance pgRep
-var once sync.Once
-
 func NewPGRepository(ctx context.Context, log *logger.Logger, addressDB string) *pgRep {
-	once.Do(func() {
-		db, err := sqlx.Connect("postgres", addressDB)
-		if err != nil {
-			log.Fatal(fmt.Errorf("app - New - postgres.New: %w", err))
-		}
+	var instance pgRep
 
-		instance = pgRep{db: db, l: log}
-		if err = instance.init(ctx); err != nil {
-			log.Fatal(fmt.Errorf("app - New - postgres.`Init`: %w", err))
-		}
-	})
+	db, err := sqlx.Connect("postgres", addressDB)
+	if err != nil {
+		log.Fatal(fmt.Errorf("app - New - postgres.New: %w", err))
+	}
+
+	instance = pgRep{db: db, l: log}
+	if err = instance.init(ctx); err != nil {
+		log.Fatal(fmt.Errorf("app - New - postgres.`Init`: %w", err))
+	}
 
 	return &instance
 }
