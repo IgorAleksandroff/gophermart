@@ -5,11 +5,10 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/jmoiron/sqlx"
-	_ "github.com/lib/pq"
-
 	"github.com/IgorAleksandroff/gophermart/internal/entity"
 	"github.com/IgorAleksandroff/gophermart/pkg/logger"
+	"github.com/jmoiron/sqlx"
+	_ "github.com/lib/pq"
 )
 
 const completedStatus = "PROCESSED"
@@ -71,22 +70,24 @@ type pgRep struct {
 }
 
 func NewPGRepository(ctx context.Context, log *logger.Logger, addressDB string) *pgRep {
-	var instance pgRep
+	log.Debug("start NewPGRepository")
 
 	db, err := sqlx.Connect("postgres", addressDB)
 	if err != nil {
 		log.Fatal(fmt.Errorf("app - New - postgres.New: %w", err))
 	}
 
-	instance = pgRep{db: db, l: log}
-	if err = instance.init(ctx); err != nil {
+	repositoryPG := pgRep{db: db, l: log}
+	if err = repositoryPG.init(ctx); err != nil {
 		log.Fatal(fmt.Errorf("app - New - postgres.`Init`: %w", err))
 	}
 
-	return &instance
+	return &repositoryPG
 }
 
 func (p *pgRep) init(ctx context.Context) error {
+	p.l.Debug("start init")
+
 	_, err := p.db.ExecContext(ctx, queryCreateTables)
 	if err != nil {
 		return err
