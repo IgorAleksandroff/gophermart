@@ -3,6 +3,7 @@ package webapi
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -33,8 +34,9 @@ func NewClient(serverName string) Client {
 
 func (c client) Do(req *http.Request) (body []byte, err error) {
 	r, err := c.transport.Do(req)
+	fmt.Printf("for order %s status code: %v\n", req.URL.Path, r.StatusCode)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("status code: %v; %w", r.StatusCode, err)
 	}
 	defer r.Body.Close()
 

@@ -1,37 +1,57 @@
 package app
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 
-	"github.com/IgorAleksandroff/gophermart/internal/webapi"
-	"github.com/go-chi/chi"
-
 	"github.com/IgorAleksandroff/gophermart/internal/config"
 	"github.com/IgorAleksandroff/gophermart/internal/hendler"
 	"github.com/IgorAleksandroff/gophermart/internal/repository"
 	"github.com/IgorAleksandroff/gophermart/internal/usecase"
+	"github.com/IgorAleksandroff/gophermart/internal/webapi"
+	"github.com/IgorAleksandroff/gophermart/internal/worker"
 	"github.com/IgorAleksandroff/gophermart/pkg/httpserver"
 	"github.com/IgorAleksandroff/gophermart/pkg/logger"
+	"github.com/go-chi/chi"
 )
 
 type app struct {
 	cfg    *config.Config
 	router http.Handler
+	worker *worker.Updater
 	l      *logger.Logger
+	Cancel cancelFunc
 }
 
-func NewApp(cfg *config.Config) (*app, error) {
+type cancelFunc func()
+
+func NewApp(ctx context.Context, cfg *config.Config) (*app, error) {
 	l := logger.New(cfg.App.LogLevel)
 	r := chi.NewRouter()
 
-	repo := repository.NewMemoRepository()
+	l.Debug("start NewApp")
+
+	var repo usecase.OrdersRepository
+	var authRepo usecase.UserRepository
+	var statusesRepo usecase.StatusesRepository
+	if cfg.App.DataBaseURI != "" {
+		pgRepo := repository.NewPGRepository(ctx, l, cfg.App.DataBaseURI)
+		repo, authRepo, statusesRepo = pgRepo, pgRepo, pgRepo
+	} else {
+		inMemoRepo := repository.NewMemoRepository(ctx, l)
+		repo, authRepo, statusesRepo = inMemoRepo, inMemoRepo, inMemoRepo
+	}
+
 	apiClient := webapi.NewClient(cfg.App.AccrualSystemAddress)
 	ordersUsecase := usecase.NewOrders(repo, apiClient)
-	auth := usecase.NewAuthorization(repo)
+	auth := usecase.NewAuthorization(authRepo)
+	statusesUsecase := usecase.NewStatuses(ordersUsecase, statusesRepo)
+
+	w := worker.NewUpdater(ctx, statusesUsecase, l)
 
 	h := hendler.New(ordersUsecase, auth, l)
 
@@ -52,13 +72,18 @@ func NewApp(cfg *config.Config) (*app, error) {
 	return &app{
 		cfg:    cfg,
 		router: r,
+		worker: w,
 		l:      l,
+		Cancel: repo.Close,
 	}, nil
 }
 
 func (a *app) Run() {
 	// start http server
 	httpServer := httpserver.New(a.router, httpserver.Addr(a.cfg.HTTPServer.ServerAddress))
+
+	// start worker for update statuses of orders
+	go a.worker.Run()
 
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)

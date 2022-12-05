@@ -1,6 +1,7 @@
 package usecase
 
 import (
+	"context"
 	"crypto/sha1"
 	"errors"
 	"fmt"
@@ -22,18 +23,18 @@ const (
 var ErrUserLogin = errors.New("invalid password or login")
 
 type authService struct {
-	repo userRepository
+	repo UserRepository
 }
 
 type Authorization interface {
-	CreateUser(user entity.User) error
-	GenerateToken(username, password string) (string, error)
+	CreateUser(ctx context.Context, user entity.User) error
+	GenerateToken(ctx context.Context, username, password string) (string, error)
 	ParseToken(token string) (string, error)
 }
 
-type userRepository interface {
-	SaveUser(user entity.User) error
-	GetUser(login string) (entity.User, error)
+type UserRepository interface {
+	SaveUser(ctx context.Context, user entity.User) error
+	GetUser(ctx context.Context, login string) (entity.User, error)
 }
 
 type tokenClaims struct {
@@ -41,17 +42,17 @@ type tokenClaims struct {
 	UserLogin string `json:"login"`
 }
 
-func NewAuthorization(repo userRepository) *authService {
+func NewAuthorization(repo UserRepository) *authService {
 	return &authService{repo: repo}
 }
 
-func (s *authService) CreateUser(user entity.User) error {
+func (s *authService) CreateUser(ctx context.Context, user entity.User) error {
 	user.Password = generatePasswordHash(user.Password)
-	return s.repo.SaveUser(user)
+	return s.repo.SaveUser(ctx, user)
 }
 
-func (s *authService) GenerateToken(username, password string) (string, error) {
-	user, err := s.repo.GetUser(username)
+func (s *authService) GenerateToken(ctx context.Context, username, password string) (string, error) {
+	user, err := s.repo.GetUser(ctx, username)
 	if err != nil {
 		return "", err
 	}

@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/IgorAleksandroff/gophermart/internal/entity"
 	"github.com/IgorAleksandroff/gophermart/internal/repository"
@@ -48,6 +47,8 @@ func (h *handler) UserIdentity(next http.Handler) http.Handler {
 }
 
 func (h *handler) HandleUserRegister(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
 	contentTypeHeaderValue := r.Header.Get("Content-Type")
 	if !strings.Contains(contentTypeHeaderValue, "application/json") {
 		h.l.Warn("unknown content-type")
@@ -69,7 +70,7 @@ func (h *handler) HandleUserRegister(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.auth.CreateUser(newUser); err != nil {
+	if err := h.auth.CreateUser(ctx, newUser); err != nil {
 		h.l.Warn(err.Error())
 		if errors.Is(err, repository.ErrUserRegister) {
 			http.Error(w, err.Error(), http.StatusConflict)
@@ -80,7 +81,7 @@ func (h *handler) HandleUserRegister(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	token, err := h.auth.GenerateToken(newUser.Login, newUser.Password)
+	token, err := h.auth.GenerateToken(ctx, newUser.Login, newUser.Password)
 	if err != nil {
 		h.l.Warn(err.Error())
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -92,6 +93,8 @@ func (h *handler) HandleUserRegister(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *handler) HandleUserLogin(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
 	contentTypeHeaderValue := r.Header.Get("Content-Type")
 	if !strings.Contains(contentTypeHeaderValue, "application/json") {
 		http.Error(w, "unknown content-type", http.StatusBadRequest)
@@ -110,7 +113,7 @@ func (h *handler) HandleUserLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	token, err := h.auth.GenerateToken(user.Login, user.Password)
+	token, err := h.auth.GenerateToken(ctx, user.Login, user.Password)
 	if err != nil {
 		errLogin := errors.Is(err, usecase.ErrUserLogin) || errors.Is(err, repository.ErrUserLogin)
 		if errLogin {
@@ -127,6 +130,8 @@ func (h *handler) HandleUserLogin(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *handler) HandlePostOrders(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
 	contentTypeHeaderValue := r.Header.Get("Content-Type")
 	if !strings.Contains(contentTypeHeaderValue, "text/plain") {
 		http.Error(w, "unknown content-type", http.StatusBadRequest)
@@ -151,15 +156,14 @@ func (h *handler) HandlePostOrders(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if !entity.Valid(orderNumber) {
-		h.l.Warn("invalid order number")
+		h.l.Warn("invalid order number: %v", orderNumber)
 		http.Error(w, "invalid order number ", http.StatusUnprocessableEntity)
 		return
 	}
 
-	err = h.ordersUC.SaveOrder(entity.Order{
-		OrderID:    order,
-		UserLogin:  r.Header.Get(userCtx),
-		UploadedAt: time.Now().Format(time.RFC3339),
+	err = h.ordersUC.SaveOrder(ctx, entity.Order{
+		OrderID:   order,
+		UserLogin: r.Header.Get(userCtx),
 	})
 	if err != nil {
 		h.l.Warn(err.Error())
@@ -180,7 +184,9 @@ func (h *handler) HandlePostOrders(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *handler) HandleGetOrders(w http.ResponseWriter, r *http.Request) {
-	orders, err := h.ordersUC.GetOrders(r.Header.Get(userCtx))
+	ctx := r.Context()
+
+	orders, err := h.ordersUC.GetOrders(ctx, r.Header.Get(userCtx))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -205,7 +211,9 @@ func (h *handler) HandleGetOrders(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *handler) HandleGetBalance(w http.ResponseWriter, r *http.Request) {
-	user, err := h.ordersUC.GetUser(r.Header.Get(userCtx))
+	ctx := r.Context()
+
+	user, err := h.ordersUC.GetUser(ctx, r.Header.Get(userCtx))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -230,6 +238,8 @@ func (h *handler) HandleGetBalance(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *handler) HandlePostBalanceWithdraw(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
 	contentTypeHeaderValue := r.Header.Get("Content-Type")
 	if !strings.Contains(contentTypeHeaderValue, "application/json") {
 		http.Error(w, "unknown content-type", http.StatusBadRequest)
@@ -259,7 +269,7 @@ func (h *handler) HandlePostBalanceWithdraw(w http.ResponseWriter, r *http.Reque
 	}
 
 	withdrawal.UserLogin = r.Header.Get(userCtx)
-	err = h.ordersUC.SaveWithdrawn(withdrawal)
+	err = h.ordersUC.SaveWithdrawn(ctx, withdrawal)
 	if err != nil {
 		if errors.Is(err, usecase.ErrLowBalance) {
 			http.Error(w, err.Error(), http.StatusPaymentRequired)
@@ -274,7 +284,9 @@ func (h *handler) HandlePostBalanceWithdraw(w http.ResponseWriter, r *http.Reque
 }
 
 func (h *handler) HandleGetWithdrawals(w http.ResponseWriter, r *http.Request) {
-	orders, err := h.ordersUC.GetWithdrawals(r.Header.Get(userCtx))
+	ctx := r.Context()
+
+	orders, err := h.ordersUC.GetWithdrawals(ctx, r.Header.Get(userCtx))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
