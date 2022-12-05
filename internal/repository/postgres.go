@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"fmt"
+	l "log"
 	"time"
 
 	"github.com/IgorAleksandroff/gophermart/internal/entity"
@@ -70,7 +71,8 @@ type pgRep struct {
 }
 
 func NewPGRepository(ctx context.Context, log *logger.Logger, addressDB string) *pgRep {
-	log.Debug("start NewPGRepository")
+	l.Println("debug l: start NewPGRepository")
+	log.Info("debug: start NewPGRepository")
 
 	db, err := sqlx.Connect("postgres", addressDB)
 	if err != nil {
