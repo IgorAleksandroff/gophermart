@@ -7,7 +7,6 @@ import (
 
 	"github.com/IgorAleksandroff/gophermart/internal/app"
 	"github.com/IgorAleksandroff/gophermart/internal/config"
-	"github.com/IgorAleksandroff/gophermart/internal/worker"
 )
 
 func main() {
@@ -23,11 +22,6 @@ func main() {
 		log.Fatalf("Create app error: %s", err)
 	}
 	defer app.Cancel()
-
-	w := worker.NewUpdater(context.Background(), cfg)
-
-	// start worker for update statuses of orders
-	log.Println(w)
 
 	app.Run()
 }
