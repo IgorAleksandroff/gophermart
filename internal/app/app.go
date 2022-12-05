@@ -49,8 +49,8 @@ func NewApp(ctx context.Context, cfg *config.Config) (*app, error) {
 	apiClient := webapi.NewClient(cfg.App.AccrualSystemAddress)
 	ordersUsecase := usecase.NewOrders(repo, apiClient)
 	auth := usecase.NewAuthorization(authRepo)
-
 	statusesUsecase := usecase.NewStatuses(ordersUsecase, statusesRepo)
+
 	w := worker.NewUpdater(ctx, statusesUsecase, l)
 
 	h := hendler.New(ordersUsecase, auth, l)
