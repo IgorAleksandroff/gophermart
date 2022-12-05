@@ -13,6 +13,7 @@ import (
 	"github.com/IgorAleksandroff/gophermart/internal/repository"
 	"github.com/IgorAleksandroff/gophermart/internal/usecase"
 	"github.com/IgorAleksandroff/gophermart/internal/webapi"
+	"github.com/IgorAleksandroff/gophermart/internal/worker"
 	"github.com/IgorAleksandroff/gophermart/pkg/httpserver"
 	"github.com/IgorAleksandroff/gophermart/pkg/logger"
 	"github.com/go-chi/chi"
@@ -21,6 +22,7 @@ import (
 type app struct {
 	cfg    *config.Config
 	router http.Handler
+	worker *worker.Updater
 	l      *logger.Logger
 	Cancel cancelFunc
 }
@@ -35,17 +37,21 @@ func NewApp(ctx context.Context, cfg *config.Config) (*app, error) {
 
 	var repo usecase.OrdersRepository
 	var authRepo usecase.UserRepository
+	var statusesRepo usecase.StatusesRepository
 	if cfg.App.DataBaseURI != "" {
 		pgRepo := repository.NewPGRepository(ctx, l, cfg.App.DataBaseURI)
-		repo, authRepo = pgRepo, pgRepo
+		repo, authRepo, statusesRepo = pgRepo, pgRepo, pgRepo
 	} else {
 		inMemoRepo := repository.NewMemoRepository(ctx, l)
-		repo, authRepo = inMemoRepo, inMemoRepo
+		repo, authRepo, statusesRepo = inMemoRepo, inMemoRepo, inMemoRepo
 	}
 
 	apiClient := webapi.NewClient(cfg.App.AccrualSystemAddress)
 	ordersUsecase := usecase.NewOrders(repo, apiClient)
 	auth := usecase.NewAuthorization(authRepo)
+
+	statusesUsecase := usecase.NewStatuses(ordersUsecase, statusesRepo)
+	w := worker.NewUpdater(ctx, statusesUsecase, l)
 
 	h := hendler.New(ordersUsecase, auth, l)
 
@@ -66,6 +72,7 @@ func NewApp(ctx context.Context, cfg *config.Config) (*app, error) {
 	return &app{
 		cfg:    cfg,
 		router: r,
+		worker: w,
 		l:      l,
 		Cancel: repo.Close,
 	}, nil
@@ -74,6 +81,9 @@ func NewApp(ctx context.Context, cfg *config.Config) (*app, error) {
 func (a *app) Run() {
 	// start http server
 	httpServer := httpserver.New(a.router, httpserver.Addr(a.cfg.HTTPServer.ServerAddress))
+
+	// start worker for update statuses of orders
+	go a.worker.Run()
 
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)

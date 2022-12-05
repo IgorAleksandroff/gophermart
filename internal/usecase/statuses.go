@@ -10,7 +10,7 @@ import (
 //go:generate mockery --name UpdaterStatuses
 
 type statusesUsecase struct {
-	orders orders
+	orders UpdaterOrders
 	repo   StatusesRepository
 }
 
@@ -18,7 +18,7 @@ type UpdaterStatuses interface {
 	UpdateStatus(ctx context.Context) error
 }
 
-type orders interface {
+type UpdaterOrders interface {
 	SaveOrder(ctx context.Context, order entity.Order) error
 }
 
@@ -26,7 +26,7 @@ type StatusesRepository interface {
 	GetOrderForUpdate(ctx context.Context) (*entity.Order, error)
 }
 
-func NewStatuses(o orders, r StatusesRepository) *statusesUsecase {
+func NewStatuses(o UpdaterOrders, r StatusesRepository) *statusesUsecase {
 	return &statusesUsecase{orders: o, repo: r}
 }
 

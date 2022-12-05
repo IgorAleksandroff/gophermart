@@ -7,40 +7,21 @@ import (
 	"log"
 	"time"
 
-	"github.com/IgorAleksandroff/gophermart/internal/config"
-	"github.com/IgorAleksandroff/gophermart/internal/repository"
 	"github.com/IgorAleksandroff/gophermart/internal/usecase"
-	"github.com/IgorAleksandroff/gophermart/internal/webapi"
 	"github.com/IgorAleksandroff/gophermart/pkg/logger"
 )
 
 const updatePeriod = 100 * time.Millisecond
 
-type updater struct {
+type Updater struct {
 	period   time.Duration
 	statuses usecase.UpdaterStatuses
 	ctx      context.Context
 	l        *logger.Logger
 }
 
-func NewUpdater(ctx context.Context, cfg *config.Config) *updater {
-	l := logger.New(cfg.App.LogLevel)
-
-	var ordersRepo usecase.OrdersRepository
-	var statusesRepo usecase.StatusesRepository
-	if cfg.App.DataBaseURI != "" {
-		pgRepo := repository.NewPGRepository(ctx, l, cfg.App.DataBaseURI)
-		ordersRepo, statusesRepo = pgRepo, pgRepo
-	} else {
-		inMemoRepo := repository.NewMemoRepository(ctx, l)
-		ordersRepo, statusesRepo = inMemoRepo, inMemoRepo
-	}
-
-	apiClient := webapi.NewClient(cfg.App.AccrualSystemAddress)
-	ordersUsecase := usecase.NewOrders(ordersRepo, apiClient)
-	statusesUsecase := usecase.NewStatuses(ordersUsecase, statusesRepo)
-
-	return &updater{
+func NewUpdater(ctx context.Context, statusesUsecase usecase.UpdaterStatuses, l *logger.Logger) *Updater {
+	return &Updater{
 		period:   updatePeriod,
 		statuses: statusesUsecase,
 		ctx:      ctx,
@@ -48,7 +29,7 @@ func NewUpdater(ctx context.Context, cfg *config.Config) *updater {
 	}
 }
 
-func (u *updater) Run() {
+func (u *Updater) Run() {
 	ticker := time.NewTicker(u.period)
 	defer ticker.Stop()
 
